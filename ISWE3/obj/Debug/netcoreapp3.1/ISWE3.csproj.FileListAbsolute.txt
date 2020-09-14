@@ -1,0 +1,9 @@
+C:\Users\Nils\source\repos\SWE3\ISWE3\obj\Debug\netcoreapp3.1\ISWE3.AssemblyInfoInputs.cache
+C:\Users\Nils\source\repos\SWE3\ISWE3\obj\Debug\netcoreapp3.1\ISWE3.AssemblyInfo.cs
+C:\Users\Nils\source\repos\SWE3\ISWE3\bin\Debug\netcoreapp3.1\ISWE3.deps.json
+C:\Users\Nils\source\repos\SWE3\ISWE3\bin\Debug\netcoreapp3.1\ISWE3.dll
+C:\Users\Nils\source\repos\SWE3\ISWE3\bin\Debug\netcoreapp3.1\ISWE3.pdb
+C:\Users\Nils\source\repos\SWE3\ISWE3\obj\Debug\netcoreapp3.1\ISWE3.dll
+C:\Users\Nils\source\repos\SWE3\ISWE3\obj\Debug\netcoreapp3.1\ISWE3.pdb
+C:\Users\Nils\source\repos\SWE3\ISWE3\obj\Debug\netcoreapp3.1\ISWE3.csprojAssemblyReference.cache
+C:\Users\Nils\source\repos\SWE3\ISWE3\obj\Debug\netcoreapp3.1\ISWE3.csproj.CoreCompileInputs.cache
