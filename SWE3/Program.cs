@@ -1,11 +1,11 @@
-﻿using System;
-using Autofac;
+﻿using Autofac;
+using SWE3.Setup;
 
 namespace SWE3
 {
-    class Program
+    internal static class Program
     {
-        static void Main(string[] args)
+        private static void Main()
         {
             var container = ContainerConfig.Configure();
             using var scope = container.BeginLifetimeScope();

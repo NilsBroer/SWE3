@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Nils\\source\\repos\\SWE3\\SWE3\\SWE3.csproj": {}
+    "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\SWE3\\SWE3.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\ISWE3.csproj": {
+    "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\SWE3\\SWE3.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\ISWE3.csproj",
-        "projectName": "ISWE3",
-        "projectPath": "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\ISWE3.csproj",
+        "projectUniqueName": "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\SWE3\\SWE3.csproj",
+        "projectName": "SWE3",
+        "projectPath": "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\SWE3\\SWE3.csproj",
         "packagesPath": "C:\\Users\\Nils\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\obj\\",
+        "outputPath": "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\SWE3\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Microsoft\\Xamarin\\NuGet\\",
+          "C:\\Microsoft\\Xamarin\\NuGet",
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
@@ -47,81 +47,6 @@
               "target": "Package",
               "version": "[5.2.0, )"
             },
-            "Serilog": {
-              "target": "Package",
-              "version": "[2.9.0, )"
-            },
-            "Serilog.Sinks.Console": {
-              "target": "Package",
-              "version": "[3.1.1, )"
-            }
-          },
-          "imports": [
-            "net461",
-            "net462",
-            "net47",
-            "net471",
-            "net472",
-            "net48"
-          ],
-          "assetTargetFallback": true,
-          "warn": true,
-          "frameworkReferences": {
-            "Microsoft.NETCore.App": {
-              "privateAssets": "all"
-            }
-          },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.401\\RuntimeIdentifierGraph.json"
-        }
-      }
-    },
-    "C:\\Users\\Nils\\source\\repos\\SWE3\\SWE3\\SWE3.csproj": {
-      "version": "1.0.0",
-      "restore": {
-        "projectUniqueName": "C:\\Users\\Nils\\source\\repos\\SWE3\\SWE3\\SWE3.csproj",
-        "projectName": "SWE3",
-        "projectPath": "C:\\Users\\Nils\\source\\repos\\SWE3\\SWE3\\SWE3.csproj",
-        "packagesPath": "C:\\Users\\Nils\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Nils\\source\\repos\\SWE3\\SWE3\\obj\\",
-        "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Microsoft\\Xamarin\\NuGet\\",
-          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
-        ],
-        "configFilePaths": [
-          "C:\\Users\\Nils\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
-        ],
-        "originalTargetFrameworks": [
-          "netcoreapp3.1"
-        ],
-        "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
-          "https://api.nuget.org/v3/index.json": {}
-        },
-        "frameworks": {
-          "netcoreapp3.1": {
-            "projectReferences": {
-              "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\ISWE3.csproj": {
-                "projectPath": "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\ISWE3.csproj"
-              }
-            }
-          }
-        },
-        "warningProperties": {
-          "warnAsError": [
-            "NU1605"
-          ]
-        }
-      },
-      "frameworks": {
-        "netcoreapp3.1": {
-          "dependencies": {
-            "Autofac": {
-              "target": "Package",
-              "version": "[5.2.0, )"
-            },
             "AutofacSerilogIntegration": {
               "target": "Package",
               "version": "[4.0.0, )"
@@ -137,6 +62,10 @@
             "Serilog.Sinks.Console": {
               "target": "Package",
               "version": "[3.1.1, )"
+            },
+            "System.Data.SqlClient": {
+              "target": "Package",
+              "version": "[4.8.2, )"
             }
           },
           "imports": [

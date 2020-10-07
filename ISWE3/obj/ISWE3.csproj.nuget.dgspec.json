@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\ISWE3.csproj": {}
+    "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\ISWE3\\ISWE3.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\ISWE3.csproj": {
+    "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\ISWE3\\ISWE3.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\ISWE3.csproj",
+        "projectUniqueName": "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\ISWE3\\ISWE3.csproj",
         "projectName": "ISWE3",
-        "projectPath": "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\ISWE3.csproj",
+        "projectPath": "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\ISWE3\\ISWE3.csproj",
         "packagesPath": "C:\\Users\\Nils\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Nils\\source\\repos\\SWE3\\ISWE3\\obj\\",
+        "outputPath": "C:\\Users\\Nils\\Google Drive\\UNI\\Semester 05\\SWE3\\Repository (SWE3)\\ISWE3\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Microsoft\\Xamarin\\NuGet\\",
+          "C:\\Microsoft\\Xamarin\\NuGet",
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
         ],
         "configFilePaths": [
@@ -54,6 +54,10 @@
             "Serilog.Sinks.Console": {
               "target": "Package",
               "version": "[3.1.1, )"
+            },
+            "System.Data.SqlClient": {
+              "target": "Package",
+              "version": "[4.8.2, )"
             }
           },
           "imports": [

@@ -1,12 +1,13 @@
-﻿using System.Linq;
-using System.Reflection;
-using Autofac;
+﻿using Autofac;
 using AutofacSerilogIntegration;
-using ISWE3;
 using Serilog;
-using Serilog.Core;
+using SWE3.BusinessLogic;
+using SWE3.BusinessLogic.Interfaces;
+using SWE3.DataAccess;
+using SWE3.DataAccess.Interfaces;
+using IContainer = Autofac.IContainer;
 
-namespace SWE3
+namespace SWE3.Setup
 {
     public static class ContainerConfig
     {
@@ -20,10 +21,9 @@ namespace SWE3
             builder.RegisterLogger();
 
             builder.RegisterType<Application>().As<IApplication>();
-            builder.RegisterAssemblyTypes(Assembly.Load(nameof(ISWE3)))
-                .Where(t => t.Namespace.Contains("Utilities"))
-                .As(t => t.GetInterfaces().FirstOrDefault(i => i.Name == "I" + t.Name));
-            builder.RegisterType<BusinessLogic>().As<IBusinessLogic>();
+            builder.RegisterType<Logic>().As<ILogic>();
+            builder.RegisterType<DataHelper>().As<IDataHelper>();
+            builder.RegisterType<SqlMapper>().As<ISqlMapper>();
 
             return builder.Build();
         }
