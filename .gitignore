@@ -24,13 +24,17 @@
 **/.idea/**/contentModel.xml
 **/.idea/**/modules.xml
 
+
+#Other (auto and non-auto)
 *.suo
 *.user
 .vs/
 [Bb]in/
 [Oo]bj/
-**/[Bb]in/
-**/[Oo]bj/
+SWE3/bin/
+SWE3/obj/
+SWE3.Testing/bin/
+SWE3.Testing/obj/
 _UpgradeReport_Files/
 [Pp]ackages/
 
