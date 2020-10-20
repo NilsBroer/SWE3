@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Linq;
-using SWE3.BusinessLogic.Entities.ExampleClasses;
 using SWE3.BusinessLogic.Interfaces;
 
 namespace SWE3.Setup
@@ -16,10 +14,7 @@ namespace SWE3.Setup
 
         public void Run()
         {
-            //logic.testDataBaseAccess();
-            //logic.testTableObjectConversion();
-            //logic.testSqlTableCreate();
-            logic.testSqlTableInsert();
+            Console.WriteLine("Application started.");
         }
     }
 }

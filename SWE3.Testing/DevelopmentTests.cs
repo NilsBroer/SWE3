@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
+using SWE3.DataAccess;
+using SWE3.DataAccess.Interfaces;
 using SWE3.Testing.Classes;
 
 namespace SWE3.Testing
@@ -9,47 +12,131 @@ namespace SWE3.Testing
     [TestFixture]
     public class DevelopmentTests
     {
+        private IDataHelper dataHelper;
+        private ISqlMapper sqlMapper;
+        
         private Person person;
         private TestObject testObject;
+        private string tableName;
 
         [SetUp]
-        public void Setup() //Given
+        public void Setup()
         {
+            //Setup
+            
+            dataHelper = new DataHelper(false);
+            sqlMapper = new SqlMapper(dataHelper);
+            
+            //Given
+            
             person = new Person
             {
-                personid = 1, vorname = "Toni", nachname = "Tester", geburtsdatum = new DateTime(2020, 10, 06)
+                PersonId = 1, Vorname = "Toni", Nachname = "Tester", Geburtsdatum = new DateTime(2020, 10, 06)
             };
+            
             testObject = new TestObject
             {
-                _smallint = 16, _integer = 32, _bigint = 64, _decimal = 420.69, _bit = true,
-                _datetime = new DateTime(2000, 01, 01), _nvarchar = "Bow chicka wow-wow!", _sqlVariant = person
+                PrimaryKey = "PK_" + Guid.NewGuid(), LaterPrimaryKeyPart2 = 01,
+                Smallint = 16, Integer = 32, Bigint = 64, Decimal = 420.69, Bit = true,
+                DateTime = new DateTime(2000, 01, 01), NVarchar = "Bow chicka wow-wow!"
             };
+            
+            tableName = testObject.GetType().Name;
+
         }
 
         [Test]
-        public void ClassShouldMapToTableObject()
+        public void ClassShouldMapToTable()
         {
             //When
-            var sut = testObject.ToTableObject();
-            var propertyNames = new List<string>()
+            
+            var sut = testObject.ToTable();
+            
+            const string expectedObjectName = "TestObject";
+            if (expectedObjectName != tableName)
             {
-                "_smallint", "_integer", "_bigint", "_decimal", "_bit", "_datetime", "_nvarchar", "_sqlVariant"
+                throw new Exception("Name of object not as expected, even before conversion");
+            }
+            
+            var expectedPropertyNames = new List<string>()
+            {
+                "PrimaryKey", "LaterPrimaryKeyPart2", "Smallint", "Integer", "Bigint", "Decimal", "Bit", "DateTime", "NVarchar"
             };
             
             //Then
-            Assert.AreEqual(sut.tableName,"TestObject");
-            Assert.AreEqual(sut.tableName,testObject.GetType().Name);
-            foreach (var propertyName in propertyNames)
+            
+            Assert.AreEqual(sut.Name,expectedObjectName);
+            foreach (var expectedPropertyName in expectedPropertyNames)
             {
-                Assert.IsTrue(sut.columns.Any(column => column.name!.Equals(propertyName)));
+                Assert.IsTrue(sut.Columns.Any(column => column.Name.Equals(expectedPropertyName)));
             }
-            Assert.Contains("_decimal",propertyNames);
+            Assert.IsTrue(sut.Columns.Any(column => column.PrimaryKey));
+            Assert.IsTrue(sut.Columns.Any(column => !column.PrimaryKey));
+            
         }
 
         [Test]
-        public void TableObjectShouldMapToSqlTable()
+        public void TableShouldMapToSqlTable()
         {
+            DropTableForTesting();
+
+            //When
+            var table = testObject.ToTable();
+            sqlMapper.CreateSqlTable(table);
             
+            //Then
+            Assert.IsTrue(TableCreationSucceeded());
+            
+        }
+
+        [Test]
+        public void ObjectShouldInsertIntoSqlTable()
+        {
+            CreateTableForTesting();
+            
+            //When
+            sqlMapper.InsertIntoSqlTable(testObject);
+            
+            //Then
+            Assert.IsTrue(ValueInsertionSucceeded());
+        }
+
+        private void DropTableForTesting()
+        {
+            if (!TableForTestingExists()) return;
+            
+            var commandText = $"DROP TABLE {tableName};";
+            var command = dataHelper.CreateCommand(commandText);
+            command.ExecuteNonQuery();
+        }
+
+        private void CreateTableForTesting()
+        {
+            if (TableForTestingExists()) return;
+            
+            var table = testObject.ToTable();
+            sqlMapper.CreateSqlTable(table);
+        }
+        
+        private bool TableForTestingExists()
+        {
+            var commandText = 
+                "SELECT CASE WHEN EXISTS" +
+                $"((SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{tableName}')) " +
+                "THEN 1 ELSE 0 END";
+            var command = dataHelper.CreateCommand(commandText);
+
+            return (int) command.ExecuteScalar() == 1;
+        }
+
+        private bool TableCreationSucceeded()
+        {
+            return true;
+        }
+
+        private bool ValueInsertionSucceeded()
+        {
+            return true;
         }
     }
 }

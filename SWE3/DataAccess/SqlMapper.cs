@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Data.SqlClient;
 using System.Linq;
-using SWE3.BusinessLogic;
+using SWE3.BusinessLogic.Entities;
 using SWE3.DataAccess.Interfaces;
 
 namespace SWE3.DataAccess
@@ -13,42 +14,71 @@ namespace SWE3.DataAccess
         {
             this.dataHelper = dataHelper;
         }
-
-        public void CreateSqlTable(TableObject tableObject)
+        /// <summary>
+        /// Builds a new SQL-table according to the properties of the given object.
+        /// Object can be empty, as only the shell (properties) is required.
+        /// </summary>
+        /// <param name="table"></param>
+        public void CreateSqlTable(Table table)
         {
-            var commandText = "CREATE TABLE " + tableObject.tableName + "(";
-            commandText = tableObject.columns.Aggregate(commandText,
-                (str, column) => str + column.name + " " + column.type + ", ");
+            var commandText = $"CREATE TABLE {table.Name} (";
 
+            //TODO: IMPORTANT! Multiple primary key constraints
+            foreach (var column in table.Columns) //TODO: What about ForeignKey and Constraints?
+            {
+                commandText += 
+                    $"{column.Name} {column.Type}" +
+                    (column.NotNull || column.PrimaryKey || column.SecondaryKey ? " NOT NULL" : "") +
+                    (column.PrimaryKey ? " PRIMARY KEY" : "") + ", ";
+            }
             commandText = commandText.Substring(0, commandText.Length - 2) + ");";
-            Console.WriteLine(commandText);
+
+            //Console.WriteLine(commandText);
+            
             var command = dataHelper.CreateCommand(commandText);
             command.ExecuteNonQuery();
         }
-
+        
+        /// <summary>
+        /// Fills an existing SQL-table with the values of the given object.
+        /// </summary>
+        /// <param name="instance"></param>
         public void InsertIntoSqlTable(object instance)
         {
             var properties = instance.GetType().GetProperties();
             var propertyValues = properties.Select(property => property.GetValue(instance)).ToList();
 
-            var tableObject = instance.ToTableObject();
-            var columnNames = tableObject.columns.Select(column => column.name).ToList();
+            var table = instance.ToTable();
+            var columnNames = table.Columns.Select(column => column.Name).ToList();
 
-            var commandText = "INSERT INTO " + tableObject.tableName + " (";
+            //Build the command with parameters
+            var commandText = $"INSERT INTO {table.Name} (";
+
             commandText = columnNames.Aggregate(commandText,
-                (str, columnName) => str + columnName + ", ");
+                (text, columnName) => text + columnName + ", ");
             commandText = commandText.Substring(0, commandText.Length - 2) + ")" +
                           "\n" + "VALUES (";
-
-            commandText = propertyValues.Aggregate(commandText,
-                (str, value) => str + "'" + (value ?? "null") + "', ");
+            
+            for (var i = 0; i < columnNames.Count; i++)
+            {
+                commandText += $"@param{i}, ";
+            }
             commandText = commandText.Substring(0, commandText.Length - 2) + ");";
+            
             Console.WriteLine(commandText);
 
             var command = dataHelper.CreateCommand(commandText);
+            
+            //Fill the command with the respective parameters and execute
+            foreach ((var value, int i) in propertyValues.Select((value, i) => (value, i)))
+            {
+                command.Parameters.Add( new SqlParameter($"@param{i}", value) );
+            }
+
             command.ExecuteNonQuery();
         }
 
-        //TODO: Parameterization, how to handle functions, primary key
+        //TODO: how to handle functions
+        //TODO: primary key
     }
 }

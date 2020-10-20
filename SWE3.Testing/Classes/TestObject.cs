@@ -1,16 +1,20 @@
 ﻿using System;
+using SWE3.BusinessLogic.Entities;
 
 namespace SWE3.Testing.Classes
 {
     public class TestObject
     {
-        public short _smallint { get; set; }
-        public int _integer { get; set; }
-        public long _bigint { get; set; }
-        public double _decimal { get; set; }
-        public string _nvarchar { get; set; }
-        public DateTime _datetime { get; set; }
-        public bool _bit { get; set; }
-        public object _sqlVariant { get; set; }
+        [PrimaryKey] public string PrimaryKey { get; set; }
+        [NotNull] public int LaterPrimaryKeyPart2 { get; set; }
+        public short Smallint { get; set; }
+        public int Integer { get; set; }
+        public long Bigint { get; set; }
+        public double Decimal { get; set; }
+        public string NVarchar { get; set; }
+        public DateTime DateTime { get; set; }
+        public bool Bit { get; set; }
+        
+        //TODO: !IMPORTANT - Do not use SqlVariant for Objects, create another table instead (recursion)
     }
 }

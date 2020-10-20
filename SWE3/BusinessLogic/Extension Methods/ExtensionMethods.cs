@@ -1,30 +1,37 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using SWE3.BusinessLogic;
+using SWE3.BusinessLogic.Entities;
 
 namespace SWE3
 {
     public static class ExtensionMethods
     {
-        public static TableObject ToTableObject(this object classObject)
+        public static Table ToTable(this object classObject)
         {
-            var table = new TableObject
+            var table = new Table
             {
-                tableName = classObject.GetType().Name, columns = new List<(string, string)>()
+                Name = classObject.GetType().Name,
+                Columns = new List<Column>()
             };
-            //TODO: to ctor
+
             foreach (var property in classObject.GetType().GetProperties())
             {
-                table.columns.Add((property.Name, property.GetTypeForSql()));
+                var column = new Column
+                {
+                    Name = property.Name,
+                    Type = property.GetTypeForSql(),
+                    NotNull = Attribute.IsDefined(property,typeof(NotNullAttribute)),
+                    PrimaryKey = Attribute.IsDefined(property,typeof(PrimaryKeyAttribute)),
+                    SecondaryKey = Attribute.IsDefined(property,typeof(SecondaryKeyAttribute))
+                };
+                table.Columns.Add(column);
             }
-            table.primaryKey = table.columns.FirstOrDefault()!.Item1;
 
             return table;
         }
 
-        private static string GetTypeForSql(this PropertyInfo property)
+        private static string GetTypeForSql(this PropertyInfo property) //TODO: Expand this list
         {
             var fieldType = property.PropertyType.ToString();
             return fieldType switch
@@ -32,7 +39,7 @@ namespace SWE3
                 "System.Int16" => "smallint",
                 "System.Int32" => "int",
                 "System.Int64" => "bigint",
-                "System.Double" => "decimal(35,20",
+                "System.Double" => "decimal(35,20)",
                 "System.String" => "nvarchar(255)",
                 "System.DateTime" => "datetime",
                 "System.Boolean" => "bit",

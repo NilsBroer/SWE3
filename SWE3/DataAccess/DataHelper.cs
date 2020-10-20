@@ -7,11 +7,12 @@ namespace SWE3.DataAccess
     public class DataHelper : IDataHelper
     {
         private const string connectionString = @"Server=(LocalDb)\MSSQLLocalDB;Initial Catalog=SWE3;Integrated Security=SSPI;Trusted_Connection=yes;";
+        private const string testConnectionString = @"Server=(LocalDb)\MSSQLLocalDB;Initial Catalog=SWE3Test;Integrated Security=SSPI;Trusted_Connection=yes;";
         private readonly SqlConnection connection;
 
-        public DataHelper()
+        public DataHelper(bool useRealDatabase = true)
         {
-            connection = GetConnection();;
+            connection = useRealDatabase ? GetConnection() : GetTestConnection();
         }
 
         private SqlConnection GetConnection()
@@ -19,7 +20,20 @@ namespace SWE3.DataAccess
 
             SqlConnection con = new SqlConnection(connectionString);
             if (con.State != ConnectionState.Open)
+            {
                 con.Open();
+            }
+
+            return con;
+        }
+
+        private SqlConnection GetTestConnection()
+        {
+            SqlConnection con = new SqlConnection(testConnectionString);
+            if (con.State != ConnectionState.Open)
+            {
+                con.Open();
+            }
 
             return con;
         }
@@ -27,22 +41,6 @@ namespace SWE3.DataAccess
         public SqlCommand CreateCommand(string commandText)
         {
             return new SqlCommand(commandText, connection);
-        }
-        
-        public string GetTestData()
-        {
-            var command = CreateCommand("SELECT TOP 1 * FROM dev_test");
-            var reader = command.ExecuteReader();
-            if (!reader.HasRows)
-            {
-                reader.Close();
-                return "-1: ERROR";
-            }
-
-            reader.Read();
-
-            var number = (int) reader[0];
-            return (int) reader[0] + ": " + (string) reader[1];
         }
     }
 }
