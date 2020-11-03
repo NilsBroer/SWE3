@@ -9,6 +9,6 @@ namespace SWE3.BusinessLogic.Entities
         
         public bool NotNull { get; set; }
         public bool PrimaryKey { get; set; }
-        public bool SecondaryKey { get; set; }
+        public bool Unique { get; set; }
     }
 }

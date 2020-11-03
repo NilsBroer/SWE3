@@ -5,7 +5,7 @@ namespace SWE3.DataAccess.Interfaces
 {
     public interface ISqlMapper
     {
-        public void CreateSqlTable(Table table);
+        public void CreateSqlTable(object shell);
         public void InsertIntoSqlTable(object instance);
     }
 }
