@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
+using Serilog.Core;
 using SWE3.BusinessLogic.Entities;
 using SWE3.DataAccess.Interfaces;
 
@@ -12,8 +13,8 @@ namespace SWE3.DataAccess
     {
         private readonly IDataHelper dataHelper;
 
-        private const string TABLE = "table_";
-        private const string SYSTEM = "System.";
+        private const string ENUMERABLE = "enumerable_";
+        private const string CUSTOM = "custom_";
 
         public SqlMapper(IDataHelper dataHelper)
         {
@@ -25,68 +26,72 @@ namespace SWE3.DataAccess
         /// Object can be empty, as only the shell (properties) is required.
         /// </summary>
         /// <param name="shell"></param>
-        public void CreateSqlTable(object shell)
+        public void CreateSqlTableFromShell(object shell) //TODO: Update this to check if table already exists, #1
         {
             var table = shell.ToTable();
-            var commandText = 
-                $"CREATE TABLE {table.Name} (" + 
+            var commandText =
+                $"CREATE TABLE {table.Name} (" +
                 "I_AI_ID int IDENTITY(1,1), "; //Internal Auto-Increment ID for mapping, not official primary key
 
-            //TODO: IMPORTANT! Multiple primary key constraints
-            foreach (var column in table.Columns) //TODO: What about ForeignKey and Constraints?
+            //TODO: Merge for multiple primary keys
+            foreach (var column in table.Columns) //TODO: What about ForeignKey (and Constraints)?
             {
-                if (!column.Type.StartsWith(TABLE))
-                {
-                    commandText +=
-                        $"{column.Name} {column.Type}" +
+                var customOrEnumerable = column.Type.Contains(CUSTOM) || column.Type.Contains(ENUMERABLE);
+                commandText +=
+                        $"{(!customOrEnumerable ? column.Name : column.Name + "_ID")} {(!customOrEnumerable ? column.Type : "int")}" +
                         (column.NotNull ? " NOT NULL" : "") +
                         (column.Unique ? " UNIQUE" : "") +
                         (column.PrimaryKey ? " PRIMARY KEY" : "") + ", ";
                     //Note that for these, the values below imply the values above in SQL
-                }
-                else
-                {
-                    var typeString = column.Type.Remove(0,TABLE.Length);
-                    if (typeString.StartsWith(SYSTEM)) //It's a known C#-type or an array, collection, etc of such
+
+
+                    if (customOrEnumerable)
                     {
-                        var subTable = new Table
+                        if (!column.Type.Contains(CUSTOM))
                         {
-                            Columns = new List<Column>
+                            column.Type = column.Type.Replace(ENUMERABLE, "");
+                            CreateSqlHelperTable(table.Name, column.Name, column.Type);
+                        }
+                        else
+                        {
+                            column.Type = column.Type.Replace(ENUMERABLE, ""); //Current logic doesn't care
+                            column.Type = column.Type.Replace(CUSTOM, "");
+                            CreateSqlHelperTable(table.Name, column.Name, "int");
+                            
+                            var type = GetType(column.Type);
+                            var subShell = type != null ? Assembly.GetAssembly(type)?.CreateInstance(column.Type) : null;
+                            if (subShell != null)
                             {
-                                new Column
-                                {
-                                    Name = column.Name,
-                                    Type = "" //Adjust after other TODO
-                                }
-                            },
-                            Name = table.Name + "_" + column.Name
-                        };
-                    }
-                    else //It's a custom type
-                    {
-                        var type = Type.GetType(typeString);
-                        var subShell = type != null ? Assembly.GetAssembly(type)?.CreateInstance(typeString) : null;
-                        if (subShell != null)
-                        {
-                            CreateSqlTable(subShell.ToTable());
+                                CreateSqlTableFromShell(subShell);
+                            }
+                            else
+                            {
+                                Console.WriteLine(type);
+                                throw new Exception("Could not find Assembly for shell of sub-type");
+                            }
                         }
                     }
-                    //TODO: Do this and also only create if doesnt exist
-                    //If you can get a class reference by that:
-                    //Otherwise also create a table and fill it with the single values found
-                }
             }
             commandText = commandText.Substring(0, commandText.Length - 2) + ");";
 
+            Console.WriteLine(commandText);
             var command = dataHelper.CreateCommand(commandText);
             command.ExecuteNonQuery();
         }
-        
-        /// <summary>
-        /// Fills an existing SQL-table with the values of the given object.
-        /// </summary>
-        /// <param name="instance"></param>
+
+        public void CreateSqlHelperTable(string supTableName, string name, string sqlType) //TODO: Update this to check if table already exists, #2
+        {
+            var commandText =
+                $"CREATE TABLE {supTableName}_{name} (" +
+                "I_AI_ID int IDENTITY(1,1)," +
+                $"{name} {sqlType} NOT NULL" +
+                ");";
+            var command = dataHelper.CreateCommand(commandText);
+            command.ExecuteNonQuery();
+        }
+
         public void InsertIntoSqlTable(object instance)
+            //TODO: Update this to also insert into sub-tables using internal IDs #3
         {
             var properties = instance.GetType().GetProperties();
             var propertyValues = properties.Select(property => property.GetValue(instance)).ToList();
@@ -119,6 +124,19 @@ namespace SWE3.DataAccess
             }
 
             command.ExecuteNonQuery();
+        }
+        
+        public static Type GetType(string typeName)
+        {
+            var type = Type.GetType(typeName);
+            if (type != null) return type;
+            foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                type = a.GetType(typeName);
+                if (type != null)
+                    return type;
+            }
+            return null;
         }
     }
 }

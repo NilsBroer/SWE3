@@ -17,7 +17,7 @@ namespace SWE3.Testing.Classes
         public Car Car { get; set; }
         public House House { get; set; }
 
-        public string[] Pets { get; set; }
+        public Pet[] Pets { get; set; }
         
         public List<int> FavoriteNumbers { get; set; }
 

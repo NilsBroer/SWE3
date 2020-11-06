@@ -31,7 +31,7 @@ namespace SWE3.Testing
             {
                 PersonId = 1,
                 SocialSecurityNumber = "A123456789",
-                BirthDate = new DateTime(1996,05,20),
+                BirthDate = new DateTime(1996, 05, 20),
                 IsEmployed = true,
                 Car = new Car
                 {
@@ -50,9 +50,10 @@ namespace SWE3.Testing
                         Country = "Austria"
                     }
                 },
-                Pets = new String[]
+                Pets = new Pet[]
                 {
-                    "Jimmy", "Fridolin"
+                    new Pet{ Name = "Jimmy", receivedTheirShots = true },
+                    new Pet{ Name = "Fridolin" }
                 },
                 FavoriteNumbers = new List<int>
                 {
@@ -63,13 +64,34 @@ namespace SWE3.Testing
         }
 
         [Test]
-        public void ObjectShouldMapToTableObject()
+        public void BasicObjectShouldMapToTableObject()
+        {
+            //When
+            var table = basicObject.ToTable();
+            const string expectedObjectName = "Address";
+            var expectedPropertyNames = new List<string>
+            {
+                "Street", "HouseNumber", "PostalCode", "City", "Country"
+            };
+            
+            //Then
+            Assert.AreEqual(table.Name,expectedObjectName);
+            foreach (var expectedPropertyName in expectedPropertyNames)
+            {
+                Assert.IsTrue(table.Columns.Any(column => column.Name.Equals(expectedPropertyName)));
+            }
+            
+            table.Columns.ForEach(column => Console.WriteLine(column.Name + " : " + column.Type));
+        }
+
+        [Test]
+        public void AdvancedObjectShouldMapToTableObject()
         {
             //When
             var table = advancedObject.ToTable();
             const string expectedObjectName = "Person";
 
-            var expectedPropertyNames = new List<string>()
+            var expectedPropertyNames = new List<string>
             {
                 "PersonId", "SocialSecurityNumber", "Age", "BirthDate", "IsEmployed", "Car", "House", "Pets"
             };
@@ -89,10 +111,9 @@ namespace SWE3.Testing
         {
             //Given
             DropTableForTesting(basicObject.GetType().Name);
-            var table = basicObject.ToTable();
-            
+
             //When
-            sqlMapper.CreateSqlTable(table);
+            sqlMapper.CreateSqlTableFromShell(basicObject);
             
             //Then
             Assert.IsTrue(BasicTableCreationSucceeded());
@@ -103,10 +124,10 @@ namespace SWE3.Testing
         {
             //Given
             DropTableForTesting(basicObject.GetType().Name);
-            var table = basicObject.ToTable();
             
             //When
-            sqlMapper.CreateSqlTable(table);
+            sqlMapper.CreateSqlTableFromShell(basicObject);
+            sqlMapper.InsertIntoSqlTable(basicObject);
             
             //Then
             Assert.IsTrue(BasicTableCreationSucceeded());
@@ -117,10 +138,9 @@ namespace SWE3.Testing
         {
             //Given
             DropTableForTesting(advancedObject.GetType().Name);
-            var table = advancedObject.ToTable();
             
             //When
-            sqlMapper.CreateSqlTable(table);
+            sqlMapper.CreateSqlTableFromShell(advancedObject);
             
             //Then
             Assert.IsTrue(AdvancedTableCreationSucceeded());
@@ -133,7 +153,7 @@ namespace SWE3.Testing
             CreateTableForTesting(advancedObject.GetType().Name);
             
             //When
-            sqlMapper.CreateSqlTable(advancedObject.ToTable());
+            sqlMapper.CreateSqlTableFromShell(advancedObject.ToTable());
         }
         
         //~~~~~~~~~~Assertion Helper~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -215,7 +235,8 @@ namespace SWE3.Testing
         {
             if (TableExists(tableName)) return;
 
-            sqlMapper.CreateSqlTable(tableName == basicObject.GetType().Name ? basicObject.ToTable() : advancedObject.ToTable());
+            sqlMapper.CreateSqlTableFromShell(tableName == basicObject.GetType().Name ? (object) basicObject : advancedObject);
+            //It's weird that this needs a cast but ok :)
         }
         
         private bool TableForTestingExists(string tableName)

@@ -10,9 +10,9 @@ namespace SWE3
 {
     public static class ExtensionMethods
     {
-        private const string TABLE = "table_";
         private const string CUSTOM = "custom_";
         private const string ENUMERABLE = "enumerable_";
+
         public static Table ToTable(this object classObject)
         {
             var table = new Table
@@ -38,14 +38,14 @@ namespace SWE3
 
         private static string GetTypeForSql(this PropertyInfo property)
         {
-            if(typeof(IEnumerable).IsAssignableFrom(property.PropertyType))
-            {
-                //TODO: Continue here :) return underlying type for sql
-                return TABLE + ENUMERABLE + "";
-            }
-            
-            var fieldType = property.PropertyType.ToString();
-            return fieldType switch
+            return toSqlString(property.PropertyType);
+        }
+
+        private static string toSqlString(Type type)
+        {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            var typeString = type.ToString();
+            return typeString switch
             {
                 "System.Int16" => "smallint",
                 "System.Int32" => "int",
@@ -54,8 +54,21 @@ namespace SWE3
                 "System.String" => "nvarchar(255)",
                 "System.DateTime" => "datetime",
                 "System.Boolean" => "bit",
-                _ => TABLE + fieldType
+                _ => nestedOrCustomToSqlString(type)
             };
+        }
+
+        private static string nestedOrCustomToSqlString(Type type)
+        {
+            if(typeof(IEnumerable).IsAssignableFrom(type))
+            {
+                var underlyingType = type.IsArray ? type.GetElementType() : type.GetGenericArguments()[0];
+                return ENUMERABLE + toSqlString(underlyingType);
+            }
+            else
+            {
+                return CUSTOM + type;
+            }
         }
     }
 }
