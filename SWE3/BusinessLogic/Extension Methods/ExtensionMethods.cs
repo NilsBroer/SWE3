@@ -35,7 +35,7 @@ namespace SWE3
 
             return table;
         }
-
+        
         private static string GetTypeForSql(this PropertyInfo property)
         {
             return toSqlString(property.PropertyType);
@@ -44,7 +44,10 @@ namespace SWE3
         private static string toSqlString(Type type)
         {
             type = Nullable.GetUnderlyingType(type) ?? type;
+            if (type.IsEnum) return "smallint";
+            
             var typeString = type.ToString();
+            
             return typeString switch
             {
                 "System.Int16" => "smallint",

@@ -16,6 +16,8 @@ namespace SWE3.DataAccess
         private const string ENUMERABLE = "enumerable_";
         private const string CUSTOM = "custom_";
 
+        private static List<string> Queue = new List<string>();
+
         public SqlMapper(IDataHelper dataHelper)
         {
             this.dataHelper = dataHelper;
@@ -26,9 +28,12 @@ namespace SWE3.DataAccess
         /// Object can be empty, as only the shell (properties) is required.
         /// </summary>
         /// <param name="shell"></param>
-        public void CreateSqlTableFromShell(object shell) //TODO: Update this to check if table already exists, #1
+        public void CreateSqlTableFromShell(object shell)
         {
             var table = shell.ToTable();
+            if (Queue.Contains(table.Name) || TableExists(table.Name)) return;
+            Queue.Add(table.Name);
+
             var commandText =
                 $"CREATE TABLE {table.Name} (" +
                 "I_AI_ID int IDENTITY(1,1), "; //Internal Auto-Increment ID for mapping, not official primary key
@@ -44,19 +49,18 @@ namespace SWE3.DataAccess
                         (column.PrimaryKey ? " PRIMARY KEY" : "") + ", ";
                     //Note that for these, the values below imply the values above in SQL
 
-
                     if (customOrEnumerable)
                     {
                         if (!column.Type.Contains(CUSTOM))
                         {
                             column.Type = column.Type.Replace(ENUMERABLE, "");
-                            CreateSqlHelperTable(table.Name, column.Name, column.Type);
+                            CreateSqlHelperTable(table.Name, column.Name, column.Type, false);
                         }
                         else
                         {
                             column.Type = column.Type.Replace(ENUMERABLE, ""); //Current logic doesn't care
                             column.Type = column.Type.Replace(CUSTOM, "");
-                            CreateSqlHelperTable(table.Name, column.Name, "int");
+                            CreateSqlHelperTable(table.Name, column.Name);
                             
                             var type = GetType(column.Type);
                             var subShell = type != null ? Assembly.GetAssembly(type)?.CreateInstance(column.Type) : null;
@@ -73,18 +77,22 @@ namespace SWE3.DataAccess
                     }
             }
             commandText = commandText.Substring(0, commandText.Length - 2) + ");";
-
             Console.WriteLine(commandText);
             var command = dataHelper.CreateCommand(commandText);
             command.ExecuteNonQuery();
         }
 
-        public void CreateSqlHelperTable(string supTableName, string name, string sqlType) //TODO: Update this to check if table already exists, #2
+        public void CreateSqlHelperTable(string supTableName, string name, string sqlType = "int", bool isActualHelperTable = true)
         {
+            if (TableExists(supTableName + "_" + name))
+            {
+                //TODO: Log table already exists
+                return;
+            }
             var commandText =
                 $"CREATE TABLE {supTableName}_{name} (" +
                 "I_AI_ID int IDENTITY(1,1)," +
-                $"{name} {sqlType} NOT NULL" +
+                $"{(!isActualHelperTable ? name : name + "_ID")} {sqlType} NOT NULL" +
                 ");";
             var command = dataHelper.CreateCommand(commandText);
             command.ExecuteNonQuery();
@@ -125,8 +133,8 @@ namespace SWE3.DataAccess
 
             command.ExecuteNonQuery();
         }
-        
-        public static Type GetType(string typeName)
+
+        private Type GetType(string typeName)
         {
             var type = Type.GetType(typeName);
             if (type != null) return type;
@@ -137,6 +145,17 @@ namespace SWE3.DataAccess
                     return type;
             }
             return null;
+        }
+
+        private bool TableExists(string tableName)
+        {
+            var commandText = 
+                "SELECT CASE WHEN EXISTS" +
+                $"(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{tableName}') " +
+                " THEN 1 ELSE 0 END";
+            var command = dataHelper.CreateCommand(commandText);
+
+            return (int) command.ExecuteScalar() == 1;
         }
     }
 }
