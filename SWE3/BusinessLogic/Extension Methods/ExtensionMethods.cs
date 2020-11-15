@@ -10,8 +10,11 @@ namespace SWE3
 {
     public static class ExtensionMethods
     {
-        private const string CUSTOM = "custom_";
-        private const string ENUMERABLE = "enumerable_";
+        private const string CUSTOM = "#custom#";
+        private const string MULTIPLE = "#multiple#";
+        private const string DEFAULT_SYSTEM_TYPE = "CommonLanguageRuntimeLibrary";
+        private const string SYSTEM = "System";
+        private const string MICROSOFT = "Microsoft";
 
         public static Table ToTable(this object classObject)
         {
@@ -34,6 +37,33 @@ namespace SWE3
             }
 
             return table;
+        }
+
+        public static bool IsDefaultSystemType(this Type type)
+        {
+            return 
+                type.Module.ScopeName == DEFAULT_SYSTEM_TYPE ||
+                type.Module.ScopeName.StartsWith(SYSTEM) ||
+                (type.Namespace ?? "").StartsWith(SYSTEM) ||
+                (type.Namespace ?? "").StartsWith(MICROSOFT);
+        }
+
+        public static bool IsIEnumerable(this Type type)
+        {
+            return typeof(IEnumerable).IsAssignableFrom(type);
+        }
+
+        public static Type GetUnderlyingType(this Type type)
+        {
+            if (type == null) return null;
+            if (type.IsEnum) return typeof(Enum);
+            if (type.IsIEnumerable())
+            {
+                type = type.IsArray ? type.GetElementType() : type.GetGenericArguments()[0];
+                type = GetUnderlyingType(type); //In case it's wrapped in multiple layers
+            }
+            type = Nullable.GetUnderlyingType(type!) ?? type;
+            return type;
         }
         
         private static string GetTypeForSql(this PropertyInfo property)
@@ -65,13 +95,15 @@ namespace SWE3
         {
             if(typeof(IEnumerable).IsAssignableFrom(type))
             {
-                var underlyingType = type.IsArray ? type.GetElementType() : type.GetGenericArguments()[0];
-                return ENUMERABLE + toSqlString(underlyingType);
+                type = type.GetUnderlyingType();
+                return MULTIPLE + toSqlString(type);
             }
-            else
+            if (!type.IsDefaultSystemType())
             {
                 return CUSTOM + type;
             }
+
+            return "sql_variant";
         }
     }
 }

@@ -40,7 +40,6 @@ namespace SWE3.Testing
                 },
                 House = new House
                 {
-                    Inhabitants = new List<Person>(),
                     Location = basicObject = new Address
                     {
                         Street = "Menzelstraße",
@@ -60,7 +59,6 @@ namespace SWE3.Testing
                     1,3,5,7,11,13,17
                 }
             };
-            advancedObject.House.Inhabitants.Add(advancedObject);
         }
 
         [Test]
@@ -124,17 +122,17 @@ namespace SWE3.Testing
         {
             //Given
             DropTableForTesting(basicObject.GetType().Name);
-            
+            CreateTableForTesting(basicObject.GetType().Name);
+
             //When
-            sqlMapper.CreateSqlTableFromShell(basicObject);
             sqlMapper.InsertIntoSqlTable(basicObject);
             
             //Then
-            Assert.IsTrue(BasicTableCreationSucceeded());
+            Assert.IsTrue(BasicValueInsertionSucceeded(basicObject.GetType().Name));
         }
 
         [Test]
-        public void AdvancedTableObjectShouldMapToSqlTable()
+        public void AdvancedObjectShouldMapToSqlTable()
         {
             //Given
             DropTableForTesting(advancedObject.GetType().Name);
@@ -150,10 +148,14 @@ namespace SWE3.Testing
         public void AdvancedObjectShouldInsertIntoSqlTable()
         {
             //Given
+            DropTableForTesting(advancedObject.GetType().Name);
             CreateTableForTesting(advancedObject.GetType().Name);
             
             //When
-            sqlMapper.CreateSqlTableFromShell(advancedObject.ToTable());
+            sqlMapper.InsertIntoSqlTable(advancedObject);
+            
+            //Then
+            Assert.IsTrue(AdvancedValueInsertSucceeded());
         }
         
         //~~~~~~~~~~Assertion Helper~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -166,7 +168,7 @@ namespace SWE3.Testing
         {
             var commandText = 
                 "SELECT CASE WHEN EXISTS" +
-                $"(SELECT 1 FROM {tableName} WHERE PersonId = '{advancedObject.PersonId}')" + 
+                $"(SELECT 1 FROM {tableName} WHERE I_AI_ID = 1)" + 
                 "THEN 1 ELSE 0 END";
             Console.WriteLine(commandText);
             var command = dataHelper.CreateCommand(commandText);
