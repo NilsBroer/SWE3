@@ -4,24 +4,29 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
+using Serilog;
 using SWE3.DataAccess.Interfaces;
+
+//TODO: Refactor and add more documentation (See CreateSqlTableFromShell) #2
 
 namespace SWE3.DataAccess
 {
-    public class SqlMapper : ISqlMapper
+    public class DataTransmitter : IDataTransmitter
     {
         private readonly IDataHelper dataHelper;
+        private readonly ILogger logger;
 
         private const string MULTIPLE = "#multiple#";
         private const string CUSTOM = "#custom#";
 
         private static readonly List<string> CreationQueue = new List<string>();
-        private static readonly List<(string insert,int iteration)> InsertionQueue = new List<(string,int)>();
-        public static int Iteration = 0;
+        private static readonly List<(string insert, int iteration)> InsertionQueue = new List<(string,int)>();
+        private static int Iteration;
 
-        public SqlMapper(IDataHelper dataHelper)
+        public DataTransmitter(IDataHelper dataHelper, ILogger logger)
         {
             this.dataHelper = dataHelper;
+            this.logger = logger;
         }
 
         /// <summary>
@@ -32,15 +37,22 @@ namespace SWE3.DataAccess
         public void CreateSqlTableFromShell(object shell)
         {
             var table = shell.ToTable();
-            if (CreationQueue.Contains(table.Name) || TableExists(table.Name)) return;
+            if (CreationQueue.Contains(table.Name) || TableExists(table.Name))
+            {
+                logger.Information("Table already created.");
+                return;
+            }
             CreationQueue.Add(table.Name);
-
+            
+            logger.Information("Starting creation of table.");
+            
             var commandText =
                 $"CREATE TABLE {table.Name} (" +
                 "I_AI_ID decimal IDENTITY(1,1), "; //Internal Auto-Increment ID for mapping, like second hidden primary key
 
-            //TODO: Merge for multiple primary keys
-            foreach (var column in table.Columns) //TODO: What about ForeignKey (and Constraints)?
+            //TODO: Merge multiple primary keys to one constraint #1
+            //(No foreign keys needed, you can still query correctly using your own logic, it's just not enforced)
+            foreach (var column in table.Columns)
             {
                 var customOrEnumerable = column.Type.Contains(CUSTOM) || column.Type.Contains(MULTIPLE);
                 if (!customOrEnumerable)
@@ -72,28 +84,36 @@ namespace SWE3.DataAccess
                         }
                         else
                         {
-                            Console.WriteLine(type);
-                            throw new Exception("Could not find Assembly for shell of sub-type");
-                            //TODO: Make custom exception (unimportant) - Also custom-errors in general, think about throws
+                            logger.Error("Could not find Assembly for shell of sub-type", type);
                         }
                     }
                 }
             }
 
             commandText = commandText.Substring(0, commandText.Length - 2) + ");";
-            Console.WriteLine(commandText);
+            logger.Debug(commandText);
             var command = dataHelper.CreateCommand(commandText);
-            command.ExecuteNonQuery();
+            
+            try
+            {
+                command.ExecuteNonQuery();
+            }
+            catch (SqlException e)
+            {
+                logger.Fatal("SqlException: ", e);
+                throw;
+            }
         }
 
-        public void CreateSqlHelperTable(string supTableName, string name, string sqlType = "int", bool isForCustomType = true)
+        private void CreateSqlHelperTable(string supTableName, string name, string sqlType = "int", bool isForCustomType = true)
         {
             if (TableExists(supTableName + "_x_" + name))
             {
-                //TODO: Add logging (Log table already exists) #4
+                logger.Information("Table already created.");
                 return;
             }
 
+            logger.Information("Starting creation of helper-table.");
             var commandText =
                 $"CREATE TABLE {supTableName}_x_{name} (" +
                 $"{supTableName}_ID int NOT NULL, " +
@@ -101,7 +121,16 @@ namespace SWE3.DataAccess
                 ");";
             Console.WriteLine(commandText);
             var command = dataHelper.CreateCommand(commandText);
-            command.ExecuteNonQuery();
+            
+            try
+            {
+                command.ExecuteNonQuery();
+            }
+            catch (SqlException e)
+            {
+                logger.Fatal("SqlException: ", e);
+                throw;
+            }
         }
 
         public void InsertIntoSqlTable(object instance)
@@ -110,6 +139,8 @@ namespace SWE3.DataAccess
             
             if (InsertionQueue.Contains((table.Name,Iteration))) return;
             InsertionQueue.Add((table.Name,Iteration));
+            
+            logger.Information("Started inserting into table.");
 
             var values = instance.GetType().GetProperties().Select(property => property.GetValue(instance)).ToArray();
             var internalId = GetNextAutoIncrementForSqlTable(table.Name);
@@ -124,26 +155,35 @@ namespace SWE3.DataAccess
                 var customOrEnumerable = column.Type.Contains(CUSTOM) || column.Type.Contains(MULTIPLE);
                 if (customOrEnumerable)
                 {
-                    if (!column.Type.Contains(CUSTOM)) //Multiple, but not custom
+                    if (values[i] == null)
                     {
+                        logger.Error("Expected object or enumerable to map, found null instead.", values[i], i, values);
+                        throw new Exception();
+                    }
+                    
+                    if (!column.Type.Contains(CUSTOM))
+                    {
+                        logger.Information("Inserting multiple system-type-based values.");
                         column.Type = column.Type.Replace(MULTIPLE, "");
-                        foreach (var value in values[i] as IEnumerable)
+                        foreach (var value in (values[i] as IEnumerable)!)
                         {
                             InsertIntoSqlHelperTable(table.Name, column.Name, internalId, value, false);
                         }
                     }
-                    else if(!column.Type.Contains(MULTIPLE)) //Custom, but not multiple
+                    else if(!column.Type.Contains(MULTIPLE))
                     {
+                        logger.Information("Inserting a single custom-type-based value.");
                         column.Type = column.Type.Replace(CUSTOM, "");
                         InsertIntoSqlTable(values[i]);
                         var objectId = GetNextAutoIncrementForSqlTable(column.Name);
                         InsertIntoSqlHelperTable(table.Name, column.Name, internalId, objectId);
                     }
-                    else //Both
+                    else
                     {
+                        logger.Information("Inserting multiple custom-type-based values.");
                         column.Type = column.Type.Replace(MULTIPLE, "");
                         column.Type = column.Type.Replace(CUSTOM, "");
-                        foreach (var value in values[i] as IEnumerable)
+                        foreach (var value in (values[i] as IEnumerable)!)
                         {
                             InsertIntoSqlTable(value);
                             var objectId = GetNextAutoIncrementForSqlTable(value.GetType().Name);
@@ -157,7 +197,6 @@ namespace SWE3.DataAccess
                     commandTextInsertPart += column.Name + ", ";
                     commandTextValuesPart += $"@param{i}, ";
                     parameterIndices.Add(i);
-                    
                 }
             }
             commandTextInsertPart = commandTextInsertPart.Substring(0, commandTextInsertPart.Length - 2) + ")";
@@ -168,32 +207,60 @@ namespace SWE3.DataAccess
             
             var command = dataHelper.CreateCommand(commandText);
 
-            //Fill the command with the respective parameters and execute
+            logger.Information("Filling command with parameterized values.");
             foreach ((var value, int i) in values.Where((value, index) => 
                 parameterIndices.Contains(index)).Select((value, i) => (value, i)))
             {
                 command.Parameters.Add(new SqlParameter($"@param{i}", value ?? DBNull.Value));
             }
 
-            command.ExecuteNonQuery();
+            try
+            {
+                command.ExecuteNonQuery();
+            }
+            catch (SqlException e)
+            {
+                logger.Fatal("SqlException: ", e);
+                throw;
+            }
         }
 
-        //Helper-tables are used for 1:m and n:m relations alike, as it simplifies the lookup-logic //TODO: Re-evaluate?
-        public void InsertIntoSqlHelperTable(string supTableName, string name, int internalId, dynamic value, bool isForCustomType = true)
+        //Helper-tables are used for 1:m and n:m relations alike, as it simplifies the lookup-logic //TODO: Re-evaluate? #0
+        private void InsertIntoSqlHelperTable(string supTableName, string name, int internalId, dynamic value, bool isForCustomType = true)
         {
+            logger.Information("Started inserting into helper-table.");
             var commandText =
                 $"INSERT INTO {supTableName}_x_{name} (" +
                 $"{supTableName}_ID, {(!isForCustomType ? name : name + "_ID")})" +
                 $"VALUES ({internalId}, {value});";
             var command = dataHelper.CreateCommand(commandText);
-            command.ExecuteNonQuery();
+            
+            try
+            {
+                command.ExecuteNonQuery();
+            }
+            catch (SqlException e)
+            {
+                logger.Fatal("SqlException: ", e);
+                throw;
+            }
         }
 
 
         private int GetNextAutoIncrementForSqlTable(string tableName)
         {
+            logger.Information("Getting next identity-value.");
             var command = dataHelper.CreateCommand($"SELECT IDENT_CURRENT('{tableName}');");
-            var currentAutoIncrement = command.ExecuteScalar();
+            object currentAutoIncrement;
+            try
+            {
+                currentAutoIncrement = command.ExecuteScalar();
+            }
+            catch (SqlException e)
+            {
+                logger.Fatal("SqlException: ", e);
+                throw;
+            }
             if (currentAutoIncrement == DBNull.Value) currentAutoIncrement = 1;
             return Convert.ToInt32(currentAutoIncrement);
         }
@@ -214,6 +281,7 @@ namespace SWE3.DataAccess
 
         private bool TableExists(string tableName)
         {
+            logger.Information("Checking if table already exists.");
             var commandText =
                 "SELECT CASE WHEN EXISTS" +
                 $"(SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{tableName}') " +
@@ -225,7 +293,5 @@ namespace SWE3.DataAccess
     }
 }
 
-//Can not always map nested enumerables correctly (e.g. lists of different types in a list, but that would most often use an object)
-//TODO: Put [] around possible nameing-violations :)
-//TODO: Age in Person is 2021 (??)
-//TODO: Unterscheiden zwischen 1:n und 1:m I think (???) and think about Ref again
+//NOTE: Can not always map nested enumerables correctly
+//(e.g. lists of different types in a list, but that would most often use an object anyways, so it's ok)

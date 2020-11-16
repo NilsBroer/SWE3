@@ -11,7 +11,9 @@ namespace SWE3.Testing.Classes
         [Unique] [NotNullable] public string SocialSecurityNumber { get; set; }
         
         public DateTime BirthDate { get; set; }
-        public int Age { get; set; }
+
+        public int Age => DateTime.Today.Year - BirthDate.Year;
+
         public bool IsEmployed { get; set; }
 
         public Car Car { get; set; }
@@ -22,11 +24,5 @@ namespace SWE3.Testing.Classes
         public List<int> FavoriteNumbers { get; set; }
 
         public object AlwaysNull = null;
-
-        public Person()
-        {
-            this.Age = (DateTime.Now - this.BirthDate).Days / 365;
-        }
-
     }
 }

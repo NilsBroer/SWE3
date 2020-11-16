@@ -16,6 +16,7 @@ namespace SWE3.Setup
             var builder = new ContainerBuilder();
 
             Log.Logger = new LoggerConfiguration()
+                .WriteTo.File(@"Logs\log.txt", rollingInterval: RollingInterval.Hour)
                 .WriteTo.ColoredConsole()
                 .CreateLogger();
             builder.RegisterLogger();
@@ -23,7 +24,7 @@ namespace SWE3.Setup
             builder.RegisterType<Application>().As<IApplication>();
             builder.RegisterType<Logic>().As<ILogic>();
             builder.RegisterType<DataHelper>().As<IDataHelper>();
-            builder.RegisterType<SqlMapper>().As<ISqlMapper>();
+            builder.RegisterType<DataTransmitter>().As<IDataTransmitter>();
 
             return builder.Build();
         }

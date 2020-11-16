@@ -15,6 +15,8 @@ namespace SWE3.Setup
         public void Run()
         {
             Console.WriteLine("Application started.");
+            //Do stuff
+            Console.WriteLine("Application ended.");
         }
     }
 }

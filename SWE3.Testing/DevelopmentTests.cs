@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using NUnit.Framework;
-using SWE3.BusinessLogic.Entities;
+using Serilog;
 using SWE3.DataAccess;
 using SWE3.DataAccess.Interfaces;
 using SWE3.Testing.Classes;
+using ILogger = Serilog.ILogger;
 
 namespace SWE3.Testing
 {
@@ -14,7 +14,8 @@ namespace SWE3.Testing
     public class DevelopmentTests
     {
         private IDataHelper dataHelper;
-        private ISqlMapper sqlMapper;
+        private IDataTransmitter dataTransmitter;
+        private ILogger logger;
         
         private Person advancedObject;
         private Address basicObject;
@@ -24,7 +25,10 @@ namespace SWE3.Testing
         {
             //Setup
             dataHelper = new DataHelper(false);
-            sqlMapper = new SqlMapper(dataHelper);
+            logger = new LoggerConfiguration()
+                .WriteTo.ColoredConsole()
+                .CreateLogger();
+            dataTransmitter = new DataTransmitter(dataHelper, logger);
             
             //Given
             advancedObject = new Person
@@ -47,7 +51,8 @@ namespace SWE3.Testing
                         PostalCode = 1210,
                         City = "Vienna",
                         Country = "Austria"
-                    }
+                    },
+                    Inhabitants = new List<Person>()
                 },
                 Pets = new Pet[]
                 {
@@ -59,6 +64,7 @@ namespace SWE3.Testing
                     1,3,5,7,11,13,17
                 }
             };
+            advancedObject.House.Inhabitants.Add(advancedObject);
         }
 
         [Test]
@@ -79,7 +85,7 @@ namespace SWE3.Testing
                 Assert.IsTrue(table.Columns.Any(column => column.Name.Equals(expectedPropertyName)));
             }
             
-            table.Columns.ForEach(column => Console.WriteLine(column.Name + " : " + column.Type));
+            table.Columns.ForEach(column => logger.Debug(column.Name + " : " + column.Type));
         }
 
         [Test]
@@ -101,17 +107,17 @@ namespace SWE3.Testing
                 Assert.IsTrue(table.Columns.Any(column => column.Name.Equals(expectedPropertyName)));
             }
             
-            table.Columns.ForEach(column => Console.WriteLine(column.Name + " : " + column.Type));
+            table.Columns.ForEach(column => logger.Debug(column.Name + " : " + column.Type));
         }
 
         [Test]
-        public void BasicTableObjectShouldMapToSqlTable()
+        public void BasicObjectShouldMapToSqlTable()
         {
             //Given
             DropTableForTesting(basicObject.GetType().Name);
 
             //When
-            sqlMapper.CreateSqlTableFromShell(basicObject);
+            dataTransmitter.CreateSqlTableFromShell(basicObject);
             
             //Then
             Assert.IsTrue(BasicTableCreationSucceeded());
@@ -125,7 +131,7 @@ namespace SWE3.Testing
             CreateTableForTesting(basicObject.GetType().Name);
 
             //When
-            sqlMapper.InsertIntoSqlTable(basicObject);
+            dataTransmitter.InsertIntoSqlTable(basicObject);
             
             //Then
             Assert.IsTrue(BasicValueInsertionSucceeded(basicObject.GetType().Name));
@@ -138,7 +144,7 @@ namespace SWE3.Testing
             DropTableForTesting(advancedObject.GetType().Name);
             
             //When
-            sqlMapper.CreateSqlTableFromShell(advancedObject);
+            dataTransmitter.CreateSqlTableFromShell(advancedObject);
             
             //Then
             Assert.IsTrue(AdvancedTableCreationSucceeded());
@@ -148,11 +154,10 @@ namespace SWE3.Testing
         public void AdvancedObjectShouldInsertIntoSqlTable()
         {
             //Given
-            DropTableForTesting(advancedObject.GetType().Name);
             CreateTableForTesting(advancedObject.GetType().Name);
             
             //When
-            sqlMapper.InsertIntoSqlTable(advancedObject);
+            dataTransmitter.InsertIntoSqlTable(advancedObject);
             
             //Then
             Assert.IsTrue(AdvancedValueInsertSucceeded());
@@ -170,7 +175,7 @@ namespace SWE3.Testing
                 "SELECT CASE WHEN EXISTS" +
                 $"(SELECT 1 FROM {tableName} WHERE I_AI_ID = 1)" + 
                 "THEN 1 ELSE 0 END";
-            Console.WriteLine(commandText);
+            logger.Debug(commandText);
             var command = dataHelper.CreateCommand(commandText);
 
             return (int) command.ExecuteScalar() == 1;
@@ -208,7 +213,7 @@ namespace SWE3.Testing
 
         private bool AdvancedValueInsertSucceeded()
         {
-            return true; //TODO: Implement
+            return true; //TODO: Implement & refactor tests a bit #any
         }
         
         private void DropTableForTesting(string tableName)
@@ -237,7 +242,7 @@ namespace SWE3.Testing
         {
             if (TableExists(tableName)) return;
 
-            sqlMapper.CreateSqlTableFromShell(tableName == basicObject.GetType().Name ? (object) basicObject : advancedObject);
+            dataTransmitter.CreateSqlTableFromShell(tableName == basicObject.GetType().Name ? (object) basicObject : advancedObject);
             //It's weird that this needs a cast but ok :)
         }
         

@@ -6,6 +6,6 @@ namespace SWE3.Testing.Classes
     {
         public Address Location { get; set; }
         
-        //public List<Person> Inhabitants { get; set; } //TODO: Acount for infinite recursion (primary key is necessary -> ?)
+        public List<Person> Inhabitants { get; set; }
     }
 }
