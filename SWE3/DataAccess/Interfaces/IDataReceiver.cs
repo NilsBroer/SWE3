@@ -1,7 +1,10 @@
-﻿namespace SWE3.DataAccess.Interfaces
+﻿using System;
+using System.Collections.Generic;
+
+namespace SWE3.DataAccess.Interfaces
 {
     public interface IDataReceiver
     {
-        //TODO: Implement Receiver, start here #3 (!)
+        public T GetObjectFromTableByInternalId<T>(int id, Type type = null);
     }
 }

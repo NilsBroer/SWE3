@@ -6,8 +6,8 @@ namespace SWE3.DataAccess
 {
     public class DataHelper : IDataHelper
     {
-        private const string connectionString = @"Server=(LocalDb)\MSSQLLocalDB;Initial Catalog=SWE3;Integrated Security=SSPI;Trusted_Connection=yes;";
-        private const string testConnectionString = @"Server=(LocalDb)\MSSQLLocalDB;Initial Catalog=SWE3Test;Integrated Security=SSPI;Trusted_Connection=yes;";
+        private const string connectionString = @"Server=(LocalDb)\MSSQLLocalDB;Initial Catalog=SWE3;Integrated Security=SSPI;Trusted_Connection=yes;MultipleActiveResultSets=True;";
+        private const string testConnectionString = @"Server=(LocalDb)\MSSQLLocalDB;Initial Catalog=SWE3Test;Integrated Security=SSPI;Trusted_Connection=yes;MultipleActiveResultSets=True;";
         private readonly SqlConnection connection;
 
         public DataHelper(bool useRealDatabase = true)

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using SWE3.BusinessLogic.Entities;
 
 namespace SWE3.Testing.Classes
@@ -8,7 +7,7 @@ namespace SWE3.Testing.Classes
     public class Person
     {
         [PrimaryKey] public int PersonId { get; set; }
-        [Unique] [NotNullable] public string SocialSecurityNumber { get; set; }
+        [PrimaryKey] public string SocialSecurityNumber { get; set; }
         
         public DateTime BirthDate { get; set; }
 

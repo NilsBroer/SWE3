@@ -7,10 +7,18 @@ using System.Reflection;
 using Serilog;
 using SWE3.DataAccess.Interfaces;
 
-//TODO: Refactor and add more documentation (See CreateSqlTableFromShell) #2
+//TODO: Add UPDATE
+//TODO: Evaluate logic when insert and when update gets triggered (primary key constraint)
+//TODO: Give ability to add foreign key constraints afterwards (alter table) and query by that
+//TODO: Refactor #last
 
 namespace SWE3.DataAccess
 {
+    /// <summary>
+    /// Transmitts data from C#-code to SQL(-tables).
+    /// Class --> table (Create)
+    /// Instance --> Entry (Insert)
+    /// </summary>
     public class DataTransmitter : IDataTransmitter
     {
         private readonly IDataHelper dataHelper;
@@ -30,10 +38,9 @@ namespace SWE3.DataAccess
         }
 
         /// <summary>
-        /// Builds a table-object and from that a new SQL-table according to the properties of the given object(-shell).
-        /// Object can be empty, as only the shell (properties) is required.
+        /// Builds a table-object and from that a new SQL-table according to the properties of the given class.
+        /// Object can be empty, as only the shell (class-properties) is required.
         /// </summary>
-        /// <param name="shell"></param>
         public void CreateSqlTableFromShell(object shell)
         {
             var table = shell.ToTable();
@@ -48,10 +55,8 @@ namespace SWE3.DataAccess
             
             var commandText =
                 $"CREATE TABLE {table.Name} (" +
-                "I_AI_ID decimal IDENTITY(1,1), "; //Internal Auto-Increment ID for mapping, like second hidden primary key
-
-            //TODO: Merge multiple primary keys to one constraint #1
-            //(No foreign keys needed, you can still query correctly using your own logic, it's just not enforced)
+                "I_AI_ID decimal IDENTITY(1,1), "; //Internal Auto-Increment ID for mapping, like second, more importantly single, hidden primary key
+            
             foreach (var column in table.Columns)
             {
                 var customOrEnumerable = column.Type.Contains(CUSTOM) || column.Type.Contains(MULTIPLE);
@@ -60,8 +65,7 @@ namespace SWE3.DataAccess
                     commandText +=
                         $"{column.Name} {column.Type}" +
                         (column.NotNull ? " NOT NULL" : "") +
-                        (column.Unique ? " UNIQUE" : "") +
-                        (column.PrimaryKey ? " PRIMARY KEY" : "") + ", ";
+                        (column.Unique || column.PrimaryKey ? " UNIQUE" : "") + ", ";
                 }
                 else
                 {
@@ -90,7 +94,18 @@ namespace SWE3.DataAccess
                 }
             }
 
-            commandText = commandText.Substring(0, commandText.Length - 2) + ");";
+            if (table.Columns.Any(column => column.PrimaryKey))
+            {
+                commandText += $"CONSTRAINT PK_{table.Name} PRIMARY KEY(";
+                commandText = table.Columns.Where(column => column.PrimaryKey).Aggregate(commandText,
+                    (current, primaryKeyColumn) => current + primaryKeyColumn.Name + ", ");
+                commandText = commandText.Substring(0, commandText.Length - 2) + "));";
+
+            }
+            else
+            {
+                commandText = commandText.Substring(0, commandText.Length - 2) + ");";
+            }
             logger.Debug(commandText);
             var command = dataHelper.CreateCommand(commandText);
             
@@ -105,6 +120,11 @@ namespace SWE3.DataAccess
             }
         }
 
+        /// <summary>
+        /// Creates a helper-table.
+        /// Can represent a relation between two objects via their IDs (ObjectID (1) | ObjectID (2))
+        /// or a relation between an object and a value directly (ObjectID | Value)
+        /// </summary>
         private void CreateSqlHelperTable(string supTableName, string name, string sqlType = "int", bool isForCustomType = true)
         {
             if (TableExists(supTableName + "_x_" + name))
@@ -133,6 +153,9 @@ namespace SWE3.DataAccess
             }
         }
 
+        /// <summary>
+        /// Inserts the values held by an object (instance) into an already existing sql-table
+        /// </summary>
         public void InsertIntoSqlTable(object instance)
         {
             var table = instance.ToTable();
@@ -174,8 +197,8 @@ namespace SWE3.DataAccess
                     {
                         logger.Information("Inserting a single custom-type-based value.");
                         column.Type = column.Type.Replace(CUSTOM, "");
+                        var objectId = GetNextAutoIncrementForSqlTable(values[i].GetType().Name);
                         InsertIntoSqlTable(values[i]);
-                        var objectId = GetNextAutoIncrementForSqlTable(column.Name);
                         InsertIntoSqlHelperTable(table.Name, column.Name, internalId, objectId);
                     }
                     else
@@ -185,8 +208,8 @@ namespace SWE3.DataAccess
                         column.Type = column.Type.Replace(CUSTOM, "");
                         foreach (var value in (values[i] as IEnumerable)!)
                         {
-                            InsertIntoSqlTable(value);
                             var objectId = GetNextAutoIncrementForSqlTable(value.GetType().Name);
+                            InsertIntoSqlTable(value);
                             Iteration++;
                             InsertIntoSqlHelperTable(table.Name, column.Name, internalId, objectId);
                         }
@@ -224,8 +247,12 @@ namespace SWE3.DataAccess
                 throw;
             }
         }
-
-        //Helper-tables are used for 1:m and n:m relations alike, as it simplifies the lookup-logic //TODO: Re-evaluate? #0
+        
+        /// <summary>
+        /// Inserts the values held in any instance of an enumerable
+        /// or connects an object with another object
+        /// or connects an object with a value
+        /// </summary>
         private void InsertIntoSqlHelperTable(string supTableName, string name, int internalId, dynamic value, bool isForCustomType = true)
         {
             logger.Information("Started inserting into helper-table.");
@@ -246,7 +273,9 @@ namespace SWE3.DataAccess
             }
         }
 
-
+        /// <summary>
+        /// Looks up an sql-table by name and returns the next iteration of its auto-increment-identity.
+        /// </summary>
         private int GetNextAutoIncrementForSqlTable(string tableName)
         {
             logger.Information("Getting next identity-value.");
@@ -261,10 +290,13 @@ namespace SWE3.DataAccess
                 logger.Fatal("SqlException: ", e);
                 throw;
             }
-            if (currentAutoIncrement == DBNull.Value) currentAutoIncrement = 1;
-            return Convert.ToInt32(currentAutoIncrement);
+            if (currentAutoIncrement == DBNull.Value) currentAutoIncrement = 0;
+            return Convert.ToInt32(currentAutoIncrement) + 1;
         }
 
+        /// <summary>
+        /// Gets and returns an actual type by its name in string-form.
+        /// </summary>
         private Type GetType(string typeName)
         {
             var type = Type.GetType(typeName);
@@ -279,6 +311,9 @@ namespace SWE3.DataAccess
             return null;
         }
 
+        /// <summary>
+        /// Checks (and returns true) if a table exists.
+        /// </summary>
         private bool TableExists(string tableName)
         {
             logger.Information("Checking if table already exists.");
@@ -292,6 +327,3 @@ namespace SWE3.DataAccess
         }
     }
 }
-
-//NOTE: Can not always map nested enumerables correctly
-//(e.g. lists of different types in a list, but that would most often use an object anyways, so it's ok)

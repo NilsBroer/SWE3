@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using SWE3.BusinessLogic.Entities;
 
 namespace SWE3.Testing.Classes
 {
@@ -7,7 +8,7 @@ namespace SWE3.Testing.Classes
     {
         public BrandEnum Brand { get; set; }
         
-        public string NumberPlate { get; set; }
+        [PrimaryKey] public string NumberPlate { get; set; }
 
         public enum BrandEnum
         {

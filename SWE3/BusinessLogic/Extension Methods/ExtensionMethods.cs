@@ -48,16 +48,16 @@ namespace SWE3
                 (type.Namespace ?? "").StartsWith(MICROSOFT);
         }
 
-        public static bool IsIEnumerable(this Type type)
+        public static bool IsEnumerable(this Type type)
         {
-            return typeof(IEnumerable).IsAssignableFrom(type);
+            return type != typeof(string) && typeof(IEnumerable).IsAssignableFrom(type);
         }
 
         public static Type GetUnderlyingType(this Type type)
         {
             if (type == null) return null;
             if (type.IsEnum) return typeof(Enum);
-            if (type.IsIEnumerable())
+            if (type.IsEnumerable())
             {
                 type = type.IsArray ? type.GetElementType() : type.GetGenericArguments()[0];
                 type = GetUnderlyingType(type); //In case it's wrapped in multiple layers
@@ -104,6 +104,11 @@ namespace SWE3
             }
 
             return "sql_variant";
+        }
+        
+        public static object MakeNullSafe(this object obj)
+        {
+            return obj == DBNull.Value ? null : obj;
         }
     }
 }
