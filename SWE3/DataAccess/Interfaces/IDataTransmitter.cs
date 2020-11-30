@@ -6,6 +6,6 @@ namespace SWE3.DataAccess.Interfaces
     public interface IDataTransmitter
     {
         public void CreateSqlTableFromShell(object shell);
-        public void InsertIntoSqlTable(object instance);
+        public int InsertIntoSqlTable(object instance);
     }
 }

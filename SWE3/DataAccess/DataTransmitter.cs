@@ -7,9 +7,9 @@ using System.Reflection;
 using Serilog;
 using SWE3.DataAccess.Interfaces;
 
-//TODO: Add UPDATE
+//TODO: Add UPDATE (use update on same primary key? --> bool) see next todo
 //TODO: Evaluate logic when insert and when update gets triggered (primary key constraint)
-//TODO: Give ability to add foreign key constraints afterwards (alter table) and query by that
+//TODO: Give ability to add foreign key constraints afterwards (alter table) and query by that (maybe)
 //TODO: Refactor #last
 
 namespace SWE3.DataAccess
@@ -156,11 +156,12 @@ namespace SWE3.DataAccess
         /// <summary>
         /// Inserts the values held by an object (instance) into an already existing sql-table
         /// </summary>
-        public void InsertIntoSqlTable(object instance)
+        /// <returns>ID upon success (>= 1), 0 when redundant, -1 upon failure</returns>
+        public int InsertIntoSqlTable(object instance)
         {
             var table = instance.ToTable();
             
-            if (InsertionQueue.Contains((table.Name,Iteration))) return;
+            if (InsertionQueue.Contains((table.Name,Iteration))) return 0;
             InsertionQueue.Add((table.Name,Iteration));
             
             logger.Information("Started inserting into table.");
@@ -197,8 +198,7 @@ namespace SWE3.DataAccess
                     {
                         logger.Information("Inserting a single custom-type-based value.");
                         column.Type = column.Type.Replace(CUSTOM, "");
-                        var objectId = GetNextAutoIncrementForSqlTable(values[i].GetType().Name);
-                        InsertIntoSqlTable(values[i]);
+                        var objectId = InsertIntoSqlTable(values[i]);
                         InsertIntoSqlHelperTable(table.Name, column.Name, internalId, objectId);
                     }
                     else
@@ -208,8 +208,7 @@ namespace SWE3.DataAccess
                         column.Type = column.Type.Replace(CUSTOM, "");
                         foreach (var value in (values[i] as IEnumerable)!)
                         {
-                            var objectId = GetNextAutoIncrementForSqlTable(value.GetType().Name);
-                            InsertIntoSqlTable(value);
+                            var objectId = InsertIntoSqlTable(value);
                             Iteration++;
                             InsertIntoSqlHelperTable(table.Name, column.Name, internalId, objectId);
                         }
@@ -244,8 +243,10 @@ namespace SWE3.DataAccess
             catch (SqlException e)
             {
                 logger.Fatal("SqlException: ", e);
-                throw;
+                return -1;
             }
+
+            return internalId;
         }
         
         /// <summary>
