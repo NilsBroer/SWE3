@@ -30,7 +30,7 @@ namespace SWE3.DataAccess
         /// <param name="type"></param>
         /// <typeparam name="T"></typeparam>
         /// <returns>object of type T</returns>
-        public T GetObjectFromTableByInternalId<T>(int id, Type type = null)
+        public T GetObjectByInternalId<T>(int id, Type type = null) where T : class
         {
             type ??= typeof(T);
 
@@ -46,9 +46,13 @@ namespace SWE3.DataAccess
             var command = dataHelper.CreateCommand(commandText);
             command.Parameters.Add(new SqlParameter("@id", id));
             var sqlDataReader = command.ExecuteReader();
-            sqlDataReader.Read(); //Read first (and only) row
+            
+            if (!sqlDataReader.HasRows) return null;
             
             var instance = (T) Activator.CreateInstance(type);
+            
+            sqlDataReader.Read(); //Read first (and only) row
+
             foreach (var property in type.GetProperties())
             {
                 if (property.SetMethod == null) continue;
@@ -155,7 +159,7 @@ namespace SWE3.DataAccess
 
             var multiple = objectIds.Count > 1;
 
-            foreach (var instance in objectIds.Select(objectId => GetObjectFromTableByInternalId<object>(objectId, type)))
+            foreach (var instance in objectIds.Select(objectId => GetObjectByInternalId<object>(objectId, type)))
             {
                 if (multiple) ++Iteration;
                 yield return instance;

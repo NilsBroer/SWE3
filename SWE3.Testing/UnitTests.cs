@@ -74,7 +74,7 @@ namespace SWE3.Testing
         //Basic ---------------------------------------
 
         [Test]
-        public void T01_BasicObjectShouldMapToTableObject()
+        public void T001_BasicObjectShouldMapToTableObject()
         {
             //WHEN
             var sut = address.ToTable();
@@ -89,7 +89,7 @@ namespace SWE3.Testing
         }
         
         [Test]
-        public void T02_BasicObjectShouldMapToSqlTable()
+        public void T002_BasicObjectShouldMapToSqlTable()
         {
             //GIVEN
             ClearDataBase();
@@ -102,7 +102,7 @@ namespace SWE3.Testing
         }
         
         [Test]
-        public void T03_BasicObjectShouldInsertIntoSqlTable()
+        public void T003_BasicObjectShouldInsertIntoSqlTable()
         {
             //GIVEN
             ClearDataBase();
@@ -116,16 +116,15 @@ namespace SWE3.Testing
         }
         
         [Test]
-        public void T04_BasicObjectShouldReturnFromSqlTable()
+        public void T004_BasicObjectShouldReturnFromSqlTable()
         {
             //GIVEN
             ClearDataBase();
             dataTransmitter.CreateSqlTableFromShell(address);
-            dataTransmitter.InsertIntoSqlTable(address);
-            var id = GetAnyExistingIdFromTable(address.GetType().Name);
-            
+            var id = dataTransmitter.InsertIntoSqlTable(address);
+
             //WHEN
-            var sut = dataReceiver.GetObjectFromTableByInternalId<Address>(id);
+            var sut = dataReceiver.GetObjectByInternalId<Address>(id);
             
             //THEN
             Assert.AreEqual(address.GetType(), sut.GetType());
@@ -135,11 +134,85 @@ namespace SWE3.Testing
             Assert.AreEqual(address.HouseNumber, sut.HouseNumber);
             Assert.AreEqual(address.PostalCode, sut.PostalCode);
         }
+
+        [Test]
+        public void T005_BasicObjectShouldDeleteFromDatabaseWithoutReferences()
+        {
+            //GIVEN
+            ClearDataBase();
+            dataTransmitter.CreateSqlTableFromShell(address);
+            var id = dataTransmitter.InsertIntoSqlTable(address);
+            
+            //WHEN
+            dataTransmitter.DeleteByIdWithoutReferences(id, instance: address);
+            var sut = dataReceiver.GetObjectByInternalId<Address>(id);
+            
+            //THEN
+            Assert.AreEqual(null, sut);
+        }
+
+        [Test]
+        public void T006_BasicObjectShouldDeleteFromDatabaseWithReferences()
+        {
+            //GIVEN
+            ClearDataBase();
+            dataTransmitter.CreateSqlTableFromShell(address);
+            var id = dataTransmitter.InsertIntoSqlTable(address);
+
+            //WHEN
+            dataTransmitter.DeleteByIdWithReferences(id, instance: address);
+            var sut = dataReceiver.GetObjectByInternalId<Address>(id);
+            
+            //THEN
+            Assert.AreEqual(null, sut);
+        }
+
+        [Test]
+        public void T007_BasicObjectShouldUpdateWithoutReferences()
+        {
+            //GIVEN
+            ClearDataBase();
+            dataTransmitter.CreateSqlTableFromShell(address);
+            var id = dataTransmitter.InsertIntoSqlTable(address);
+            
+            var changedAddress = address;
+            var expectedCity = changedAddress.City = "a brand new city";
+            var expectedPostalCode = changedAddress.PostalCode = 42069;
+            
+            //WHEN
+            dataTransmitter.UpdateByIdWithoutReferences(id, address);
+            var sut = dataReceiver.GetObjectByInternalId<Address>(id);
+            
+            //THEN
+            Assert.AreEqual(expectedCity,sut.City);
+            Assert.AreEqual(expectedPostalCode,sut.PostalCode);
+        }
+
+        [Test]
+        public void T008_BasicObjectShouldUpdateWithReferences()
+        {
+            //GIVEN
+            ClearDataBase();
+            dataTransmitter.CreateSqlTableFromShell(address);
+            var id = dataTransmitter.InsertIntoSqlTable(address);
+            
+            var changedAddress = address;
+            var expectedCity = changedAddress.City = "a brand new city";
+            var expectedPostalCode = changedAddress.PostalCode = 42069;
+            
+            //WHEN
+            id = dataTransmitter.UpdateByIdWithReferences(id, changedAddress);
+            var sut = dataReceiver.GetObjectByInternalId<Address>(id);
+            
+            //THEN
+            Assert.AreEqual(expectedCity,sut.City);
+            Assert.AreEqual(expectedPostalCode,sut.PostalCode);
+        }
         
         //Advanced ---------------------------------------
 
         [Test]
-        public void T05_AdvancedObjectShouldMapToTableObject()
+        public void T101_AdvancedObjectShouldMapToTableObject()
         {
             var sut = person.ToTable();
 
@@ -152,7 +225,7 @@ namespace SWE3.Testing
         }
 
         [Test]
-        public void T06_AdvancedObjectShouldMapToSqlTable()
+        public void T102_AdvancedObjectShouldMapToSqlTable()
         {
             //GIVEN
             ClearDataBase();
@@ -182,7 +255,7 @@ namespace SWE3.Testing
         }
 
         [Test]
-        public void T07_AdvancedObjectShouldInsertIntoSqlTable()
+        public void T103_AdvancedObjectShouldInsertIntoSqlTable()
         {
             //GIVEN
             ClearDataBase();
@@ -211,16 +284,15 @@ namespace SWE3.Testing
         }
 
         [Test]
-        public void T08_AdvancedObjectShouldReturnFromSqlTable()
+        public void T104_AdvancedObjectShouldReturnFromSqlTable()
         {
             //GIVEN
             ClearDataBase();
             dataTransmitter.CreateSqlTableFromShell(person);
-            dataTransmitter.InsertIntoSqlTable(person);
-            var id = GetAnyExistingIdFromTable(person.GetType().Name);
-            
+            var id = dataTransmitter.InsertIntoSqlTable(person);
+
             //WHEN
-            var sut = dataReceiver.GetObjectFromTableByInternalId<Person>(id);
+            var sut = dataReceiver.GetObjectByInternalId<Person>(id);
             
             //THEN
             Assert.AreEqual(person.GetType(), sut.GetType());
@@ -228,6 +300,88 @@ namespace SWE3.Testing
             Assert.AreEqual(person.Car.NumberPlate, person.Car.NumberPlate);
             Assert.AreEqual(person.Pets[0].Name, sut.Pets[0].Name);
             Assert.AreEqual(person.Pets[1].Name, sut.Pets[1].Name);
+        }
+
+        [Test]
+        public void T105_AdvancedObjectShouldDeleteFromDatabaseWithoutReferences()
+        {
+            //GIVEN
+            ClearDataBase();
+            dataTransmitter.CreateSqlTableFromShell(person);
+            var id = dataTransmitter.InsertIntoSqlTable(person);
+            
+            //WHEN
+            dataTransmitter.DeleteByIdWithoutReferences(id, instance: person);
+            var sut = dataReceiver.GetObjectByInternalId<Person>(id);
+            
+            //THEN
+            Assert.AreEqual(null, sut);
+            Assert.True(TableHasContent("Person_x_FavoriteNumbers"));
+            Assert.True(TableHasContent("Person_x_Pets"));
+            Assert.True(TableHasContent("Pet"));
+        }
+        
+        [Test]
+        public void T106_AdvancedObjectShouldDeleteFromDatabaseWithReferences()
+        {
+            //GIVEN
+            ClearDataBase();
+            dataTransmitter.CreateSqlTableFromShell(person);
+            var id = dataTransmitter.InsertIntoSqlTable(person);
+
+            //WHEN
+            dataTransmitter.DeleteByIdWithReferences(id, instance: person);
+            var sut = dataReceiver.GetObjectByInternalId<Person>(id);
+            
+            //THEN
+            Assert.AreEqual(null, sut);
+            Assert.False(TableHasContent("Person_x_FavoriteNumbers"));
+            Assert.False(TableHasContent("Person_x_Pets"));
+            Assert.False(TableHasContent("Pet"));
+        }
+        
+        [Test]
+        public void T107_AdvancedObjectShouldUpdateFromDatabaseWithoutReferences()
+        {
+            //GIVEN
+            ClearDataBase();
+            dataTransmitter.CreateSqlTableFromShell(person);
+            var id = dataTransmitter.InsertIntoSqlTable(person);
+            var updatedPerson = person;
+            var expectedPersonId = updatedPerson.PersonId = 42069;
+            var notExpectedNumbers = updatedPerson.FavoriteNumbers = new List<int> {1,2,3,4,5};
+            var expectedSSN = updatedPerson.SocialSecurityNumber = "brand new ssn";
+            
+            //WHEN
+            dataTransmitter.UpdateByIdWithoutReferences(id, updatedPerson);
+            var sut = dataReceiver.GetObjectByInternalId<Person>(id);
+            
+            //THEN
+            Assert.AreEqual(expectedPersonId,sut.PersonId);
+            CollectionAssert.AreNotEqual(notExpectedNumbers,sut.FavoriteNumbers);
+            Assert.AreEqual(expectedSSN,sut.SocialSecurityNumber);
+        }
+        
+        [Test]
+        public void T107_AdvancedObjectShouldUpdateFromDatabaseWithReferences()
+        {
+            //GIVEN
+            ClearDataBase();
+            dataTransmitter.CreateSqlTableFromShell(person);
+            var id = dataTransmitter.InsertIntoSqlTable(person);
+            var updatedPerson = person;
+            var expectedPersonId = updatedPerson.PersonId = 42069;
+            var expectedNumbers = updatedPerson.FavoriteNumbers = new List<int> {1,2,3,4,5};
+            var expectedSSN = updatedPerson.SocialSecurityNumber = "brand new ssn";
+
+            //WHEN
+            id = dataTransmitter.UpdateByIdWithReferences(id, updatedPerson);
+            var sut = dataReceiver.GetObjectByInternalId<Person>(id);
+
+            //THEN
+            Assert.AreEqual(expectedPersonId,sut.PersonId);
+            CollectionAssert.AreEqual(expectedNumbers,sut.FavoriteNumbers);
+            Assert.AreEqual(expectedSSN,sut.SocialSecurityNumber);
         }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -255,19 +409,11 @@ namespace SWE3.Testing
             return (int) command.ExecuteScalar() == 1;
         }
 
-        private int GetAnyExistingIdFromTable(string tableName)
-        {
-            var reader = dataHelper.CreateCommand($"SELECT TOP 1 I_AI_ID FROM {tableName}").ExecuteReader();
-            reader.Read();
-            return decimal.ToInt32((decimal) reader[0]);
-        }
-
         private void ClearDataBase()
         {
             dataHelper.CreateCommand("EXEC sp_MSForEachTable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'").ExecuteNonQuery();
             dataHelper.CreateCommand("EXEC sp_MSForEachTable 'DELETE FROM ?'").ExecuteNonQuery();
             dataHelper.CreateCommand("EXEC sp_MSForEachTable 'ALTER TABLE ? CHECK CONSTRAINT ALL'").ExecuteNonQuery();
-            
         }
     }
 }

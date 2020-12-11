@@ -10,6 +10,7 @@ using SWE3.DataAccess.Interfaces;
 //TODO: Add UPDATE (use update on same primary key? --> bool) see next todo
 //TODO: Evaluate logic when insert and when update gets triggered (primary key constraint)
 //TODO: Give ability to add foreign key constraints afterwards (alter table) and query by that (maybe)
+//notTODO: Maybe add other direction too (Address checks if it was referenced in House f.E.)
 //TODO: Refactor #last
 
 namespace SWE3.DataAccess
@@ -118,6 +119,8 @@ namespace SWE3.DataAccess
                 logger.Fatal("SqlException: ", e);
                 throw;
             }
+            
+            logger.Information("Finished Creation.");
         }
 
         /// <summary>
@@ -154,10 +157,19 @@ namespace SWE3.DataAccess
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        public int InsertIntoSqlTable(object instance)
+        {
+            InsertionQueue.Clear();
+            return InsertIntoSqlTableWithRecursion(instance);
+        }
+
+        /// <summary>
         /// Inserts the values held by an object (instance) into an already existing sql-table
         /// </summary>
         /// <returns>ID upon success (>= 1), 0 when redundant, -1 upon failure</returns>
-        public int InsertIntoSqlTable(object instance)
+        private int InsertIntoSqlTableWithRecursion(object instance)
         {
             var table = instance.ToTable();
             
@@ -198,7 +210,7 @@ namespace SWE3.DataAccess
                     {
                         logger.Information("Inserting a single custom-type-based value.");
                         column.Type = column.Type.Replace(CUSTOM, "");
-                        var objectId = InsertIntoSqlTable(values[i]);
+                        var objectId = InsertIntoSqlTableWithRecursion(values[i]);
                         InsertIntoSqlHelperTable(table.Name, column.Name, internalId, objectId);
                     }
                     else
@@ -208,7 +220,7 @@ namespace SWE3.DataAccess
                         column.Type = column.Type.Replace(CUSTOM, "");
                         foreach (var value in (values[i] as IEnumerable)!)
                         {
-                            var objectId = InsertIntoSqlTable(value);
+                            var objectId = InsertIntoSqlTableWithRecursion(value);
                             Iteration++;
                             InsertIntoSqlHelperTable(table.Name, column.Name, internalId, objectId);
                         }
@@ -245,10 +257,12 @@ namespace SWE3.DataAccess
                 logger.Fatal("SqlException: ", e);
                 return -1;
             }
+            
+            logger.Information("Finished Insertion.");
 
             return internalId;
         }
-        
+
         /// <summary>
         /// Inserts the values held in any instance of an enumerable
         /// or connects an object with another object
@@ -273,6 +287,153 @@ namespace SWE3.DataAccess
                 throw;
             }
         }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        public void DeleteByIdWithReferences(int id, Type type = null, object instance = null)
+        {
+            var tableName = instance?.GetType().Name ?? type!.Name;
+            var commandText =
+                "SELECT TABLE_NAME " +
+                "FROM INFORMATION_SCHEMA.TABLES " +
+                $"WHERE TABLE_NAME LIKE '{tableName}%'";
+            var command = dataHelper.CreateCommand(commandText);
+            var sqlDataReader = command.ExecuteReader();
+            
+            //Get all related tables
+            var relatedTableNames = new List<string>();
+            while (sqlDataReader.Read())
+            {
+                relatedTableNames.Add((string) sqlDataReader[0]);
+            }
+            sqlDataReader.Close();
+
+            //Get all references to other objects
+            foreach (var helperTableName in relatedTableNames.Where(name => name != tableName))
+            {
+                commandText =
+                    "SELECT * " +
+                    $"FROM {helperTableName} " +
+                    $"WHERE {tableName + "_ID"} = {id}";
+                command.CommandText = commandText;
+                sqlDataReader = command.ExecuteReader();
+                var referenceIds = new List<decimal>();
+                instance ??= Activator.CreateInstance(type);
+                var namesAndTypes = new List<(string name, Type type)>();
+                instance.GetType().GetProperties().ToList().ForEach(property => namesAndTypes.Add((property.Name, property.PropertyType)));
+                var referencedTableName =
+                    helperTableName.Substring(helperTableName.IndexOf("_x_", StringComparison.Ordinal) + 3);
+                Type referencedType = default;
+                foreach (var pair in namesAndTypes.Where(pair => pair.name == referencedTableName))
+                {
+                    referencedTableName = pair.type.IsDefaultSystemType() ? referencedTableName : pair.type.GetUnderlyingType().Name;
+                    referencedType = pair.type.GetUnderlyingType();
+                    break;
+                }
+                var valueIsReferenceId = TableExists(referencedTableName);
+                while (sqlDataReader.Read())
+                {
+                    if (valueIsReferenceId && !referenceIds.Contains((int) sqlDataReader[1]))
+                    {
+                        referenceIds.Add((int) sqlDataReader[1]);
+                    }
+                }
+                sqlDataReader.Close();
+                
+                //Delete all references from helper tables
+                commandText =
+                    $"DELETE FROM {helperTableName} " +
+                    $"WHERE {tableName + "_ID"} = {id}";
+                command.CommandText = commandText;
+                command.ExecuteNonQuery();
+
+                //Delete all referenced objects from their tables
+                foreach (var referenceId in referenceIds)
+                {
+                    DeleteByIdWithReferences(decimal.ToInt32(referenceId), referencedType); 
+                    /* commandText =
+                        $"DELETE FROM {referencedTableName} " +
+                        $"WHERE I_AI_ID = {referenceId}";
+                    command.CommandText = commandText;
+                    command.ExecuteNonQuery(); */
+                }
+            }
+
+            //Delete base entry
+            commandText =
+                $"DELETE FROM {tableName} " +
+                $"WHERE I_AI_ID = {id}";
+            command.CommandText = commandText;
+            command.ExecuteNonQuery();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public int UpdateByIdWithReferences(int id, object instance)
+        {
+            DeleteByIdWithReferences(id, instance: instance);
+            return InsertIntoSqlTable(instance);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public void DeleteByIdWithoutReferences(int id, Type type = null, string tableName = null, object instance = null)
+        {
+            tableName ??= instance?.GetType().Name ?? type!.Name;
+            var commandText =
+                $"DELETE FROM {tableName} " +
+                $"WHERE I_AI_ID = {id}";
+            var command = dataHelper.CreateCommand(commandText);
+            command.ExecuteNonQuery();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public void UpdateByIdWithoutReferences(int id, object instance)
+        {
+            var table = instance.ToTable();
+            var values = instance.GetType().GetProperties().Select(property => property.GetValue(instance)).ToArray();
+            var commandText =
+                $"UPDATE {table.Name} SET ";
+            var valueIndices = new List<int>();
+            foreach((var column, int i) in table.Columns.Select((column, i) => (column, i)))
+            {
+                if (!column.Type.Contains(CUSTOM) && !column.Type.Contains(MULTIPLE))
+                {
+                    commandText += $"{column.Name} = @param{i}, ";
+                    valueIndices.Add(i);
+                }
+            }
+
+            commandText = commandText.Substring(0, commandText.Length - 2) + ";";
+            var command = dataHelper.CreateCommand(commandText);
+
+            foreach (var i in valueIndices)
+            {
+                command.Parameters.Add(new SqlParameter($"@param{i}", values[i]));
+            }
+            
+            command.ExecuteNonQuery();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public void UpdateWithSingleParameter(int id, string tableName, string parameterName, dynamic parameterValue)
+        {
+            var commandText =
+                $"UPDATE {tableName}" +
+                $"SET {parameterName} = @parameterValue;";
+            var command = dataHelper.CreateCommand(commandText);
+            command.Parameters.Add("@parameterValue", parameterValue);
+            command.ExecuteNonQuery();
+        }
+
+        //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         /// <summary>
         /// Looks up an sql-table by name and returns the next iteration of its auto-increment-identity.
