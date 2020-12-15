@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using NUnit.Framework;
 using Serilog;
 using SWE3.DataAccess;
@@ -36,6 +35,7 @@ namespace SWE3.Testing
             //GIVEN
             address = new Address()
             {
+                AddressIdentifier = "ADD1",
                 Street = "Menzelstraße",
                 HouseNumber = 8,
                 PostalCode = 1210,
@@ -92,7 +92,7 @@ namespace SWE3.Testing
         public void T002_BasicObjectShouldMapToSqlTable()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
 
             //WHEN
             dataTransmitter.CreateSqlTableFromShell(address);
@@ -105,7 +105,7 @@ namespace SWE3.Testing
         public void T003_BasicObjectShouldInsertIntoSqlTable()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(address);
 
             //WHEN
@@ -119,7 +119,7 @@ namespace SWE3.Testing
         public void T004_BasicObjectShouldReturnFromSqlTable()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(address);
             var id = dataTransmitter.InsertIntoSqlTable(address);
 
@@ -136,10 +136,10 @@ namespace SWE3.Testing
         }
 
         [Test]
-        public void T005_BasicObjectShouldDeleteFromDatabaseWithoutReferences()
+        public void T005_BasicObjectShouldDeleteWithoutReferences()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(address);
             var id = dataTransmitter.InsertIntoSqlTable(address);
             
@@ -152,10 +152,10 @@ namespace SWE3.Testing
         }
 
         [Test]
-        public void T006_BasicObjectShouldDeleteFromDatabaseWithReferences()
+        public void T006_BasicObjectShouldDeleteWithReferences()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(address);
             var id = dataTransmitter.InsertIntoSqlTable(address);
 
@@ -171,7 +171,7 @@ namespace SWE3.Testing
         public void T007_BasicObjectShouldUpdateWithoutReferences()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(address);
             var id = dataTransmitter.InsertIntoSqlTable(address);
             
@@ -192,7 +192,7 @@ namespace SWE3.Testing
         public void T008_BasicObjectShouldUpdateWithReferences()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(address);
             var id = dataTransmitter.InsertIntoSqlTable(address);
             
@@ -207,6 +207,55 @@ namespace SWE3.Testing
             //THEN
             Assert.AreEqual(expectedCity,sut.City);
             Assert.AreEqual(expectedPostalCode,sut.PostalCode);
+        }
+        
+        [Test]
+        public void T009_BasicObjectShouldUpdateWithSingleParameter()
+        {
+            //GIVEN
+            dataHelper.ClearDatabase();
+            dataTransmitter.CreateSqlTableFromShell(address);
+            var id = dataTransmitter.InsertIntoSqlTable(address);
+
+            var expectedCity = "updated city";
+            
+            //WHEN
+            dataTransmitter.UpdateWithSingleParameter(tableName: address.GetType().Name, id: id,
+                parameterName: nameof(address.City), parameterValue: expectedCity);
+            var sut = dataReceiver.GetObjectByInternalId<Address>(id);
+            
+            //THEN
+            Assert.AreEqual(expectedCity,sut.City);
+            Assert.AreEqual(address.PostalCode,sut.PostalCode);
+            Assert.AreNotEqual(expectedCity,address.City);
+        }
+
+        [Test]
+        public void T010_BasicObjectShouldUpsertCorrectly()
+        {
+            //GIVEN
+            dataHelper.ClearDatabase();
+            dataTransmitter.CreateSqlTableFromShell(address);
+            
+            var differentAddress = new Address { AddressIdentifier = "anything else" };
+            
+            dataTransmitter.Upsert(differentAddress);
+            var id = dataTransmitter.Upsert(address);
+
+            var expectedAddressExceptForCity = dataReceiver.GetObjectByInternalId<Address>(id);
+            
+            var expectedCity = address.City = "updated city";
+            
+            //WHEN
+            id = dataTransmitter.Upsert(address);
+            var sut = dataReceiver.GetObjectByInternalId<Address>(id);
+            
+            //THEN
+            Assert.AreEqual(expectedAddressExceptForCity.AddressIdentifier,sut.AddressIdentifier);
+            Assert.AreEqual(expectedAddressExceptForCity.PostalCode, sut.PostalCode);
+            Assert.AreNotEqual(expectedAddressExceptForCity,sut.City);
+            Assert.AreEqual(expectedCity,sut.City);
+            Assert.AreNotEqual(differentAddress.AddressIdentifier,sut.AddressIdentifier);
         }
         
         //Advanced ---------------------------------------
@@ -228,7 +277,7 @@ namespace SWE3.Testing
         public void T102_AdvancedObjectShouldMapToSqlTable()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             
             //WHEN
             dataTransmitter.CreateSqlTableFromShell(person);
@@ -258,7 +307,7 @@ namespace SWE3.Testing
         public void T103_AdvancedObjectShouldInsertIntoSqlTable()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(person);
             
             //WHEN
@@ -287,7 +336,7 @@ namespace SWE3.Testing
         public void T104_AdvancedObjectShouldReturnFromSqlTable()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(person);
             var id = dataTransmitter.InsertIntoSqlTable(person);
 
@@ -303,10 +352,10 @@ namespace SWE3.Testing
         }
 
         [Test]
-        public void T105_AdvancedObjectShouldDeleteFromDatabaseWithoutReferences()
+        public void T105_AdvancedObjectShouldDeleteWithoutReferences()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(person);
             var id = dataTransmitter.InsertIntoSqlTable(person);
             
@@ -322,10 +371,10 @@ namespace SWE3.Testing
         }
         
         [Test]
-        public void T106_AdvancedObjectShouldDeleteFromDatabaseWithReferences()
+        public void T106_AdvancedObjectShouldDeleteWithReferences()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(person);
             var id = dataTransmitter.InsertIntoSqlTable(person);
 
@@ -341,10 +390,10 @@ namespace SWE3.Testing
         }
         
         [Test]
-        public void T107_AdvancedObjectShouldUpdateFromDatabaseWithoutReferences()
+        public void T107_AdvancedObjectShouldUpdateWithoutReferences()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(person);
             var id = dataTransmitter.InsertIntoSqlTable(person);
             var updatedPerson = person;
@@ -361,12 +410,12 @@ namespace SWE3.Testing
             CollectionAssert.AreNotEqual(notExpectedNumbers,sut.FavoriteNumbers);
             Assert.AreEqual(expectedSSN,sut.SocialSecurityNumber);
         }
-        
+
         [Test]
-        public void T107_AdvancedObjectShouldUpdateFromDatabaseWithReferences()
+        public void T108_AdvancedObjectShouldUpdateWithReferences()
         {
             //GIVEN
-            ClearDataBase();
+            dataHelper.ClearDatabase();
             dataTransmitter.CreateSqlTableFromShell(person);
             var id = dataTransmitter.InsertIntoSqlTable(person);
             var updatedPerson = person;
@@ -382,6 +431,34 @@ namespace SWE3.Testing
             Assert.AreEqual(expectedPersonId,sut.PersonId);
             CollectionAssert.AreEqual(expectedNumbers,sut.FavoriteNumbers);
             Assert.AreEqual(expectedSSN,sut.SocialSecurityNumber);
+        }
+        
+        [Test]
+        public void T109_AdvancedObjectShouldUpdateWithSingleParameter()
+        {
+            //GIVEN
+            dataHelper.ClearDatabase();
+            dataTransmitter.CreateSqlTableFromShell(person);
+            var id = dataTransmitter.InsertIntoSqlTable(person);
+
+            var expectedPersonID = 2020;
+            
+            //WHEN
+            dataTransmitter.UpdateWithSingleParameter(id, person.GetType().Name, nameof(person.PersonId), expectedPersonID);
+            var sut = dataReceiver.GetObjectByInternalId<Person>(id);
+            
+            //THEN
+            Assert.AreEqual(expectedPersonID,sut.PersonId);
+            Assert.AreEqual(person.SocialSecurityNumber,sut.SocialSecurityNumber);
+            CollectionAssert.AreEqual(person.FavoriteNumbers,sut.FavoriteNumbers);
+            Assert.AreEqual(person.House.Location.City,sut.House.Location.City);
+            Assert.AreNotEqual(expectedPersonID,person.PersonId);
+        }
+
+        [Test]
+        public void T110_AdvancedObjectShouldUpsertCorrectly()
+        {
+            //TODO: Implement
         }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -407,13 +484,6 @@ namespace SWE3.Testing
             var command = dataHelper.CreateCommand(commandText);
 
             return (int) command.ExecuteScalar() == 1;
-        }
-
-        private void ClearDataBase()
-        {
-            dataHelper.CreateCommand("EXEC sp_MSForEachTable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'").ExecuteNonQuery();
-            dataHelper.CreateCommand("EXEC sp_MSForEachTable 'DELETE FROM ?'").ExecuteNonQuery();
-            dataHelper.CreateCommand("EXEC sp_MSForEachTable 'ALTER TABLE ? CHECK CONSTRAINT ALL'").ExecuteNonQuery();
         }
     }
 }

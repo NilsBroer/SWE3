@@ -8,7 +8,7 @@ namespace SWE3.BusinessLogic.Entities
         public string Type { get; set; }
         
         public bool NotNull { get; set; }
-        public bool PrimaryKey { get; set; }
         public bool Unique { get; set; }
+        public bool PrimaryKey { get; set; }
     }
 }

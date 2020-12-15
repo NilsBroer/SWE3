@@ -3,14 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using Serilog;
 using SWE3.DataAccess.Interfaces;
 
-//TODO: Add UPDATE (use update on same primary key? --> bool) see next todo
-//TODO: Evaluate logic when insert and when update gets triggered (primary key constraint)
-//TODO: Give ability to add foreign key constraints afterwards (alter table) and query by that (maybe)
-//notTODO: Maybe add other direction too (Address checks if it was referenced in House f.E.)
+//TODO: Add caching
 //TODO: Refactor #last
 
 namespace SWE3.DataAccess
@@ -157,8 +155,9 @@ namespace SWE3.DataAccess
         }
 
         /// <summary>
-        /// 
+        /// Inserts the values held by an object (instance) into an already existing sql-table
         /// </summary>
+        /// <returns>ID upon success (>= 1), 0 when redundant, -1 upon failure</returns>
         public int InsertIntoSqlTable(object instance)
         {
             InsertionQueue.Clear();
@@ -166,9 +165,8 @@ namespace SWE3.DataAccess
         }
 
         /// <summary>
-        /// Inserts the values held by an object (instance) into an already existing sql-table
+        /// See public method 'InsertIntoSqlTable'.
         /// </summary>
-        /// <returns>ID upon success (>= 1), 0 when redundant, -1 upon failure</returns>
         private int InsertIntoSqlTableWithRecursion(object instance)
         {
             var table = instance.ToTable();
@@ -351,12 +349,7 @@ namespace SWE3.DataAccess
                 //Delete all referenced objects from their tables
                 foreach (var referenceId in referenceIds)
                 {
-                    DeleteByIdWithReferences(decimal.ToInt32(referenceId), referencedType); 
-                    /* commandText =
-                        $"DELETE FROM {referencedTableName} " +
-                        $"WHERE I_AI_ID = {referenceId}";
-                    command.CommandText = commandText;
-                    command.ExecuteNonQuery(); */
+                    DeleteByIdWithReferences(decimal.ToInt32(referenceId), referencedType);
                 }
             }
 
@@ -426,11 +419,34 @@ namespace SWE3.DataAccess
         public void UpdateWithSingleParameter(int id, string tableName, string parameterName, dynamic parameterValue)
         {
             var commandText =
-                $"UPDATE {tableName}" +
+                $"UPDATE {tableName} " +
                 $"SET {parameterName} = @parameterValue;";
             var command = dataHelper.CreateCommand(commandText);
-            command.Parameters.Add("@parameterValue", parameterValue);
+            command.Parameters.Add(new SqlParameter("@parameterValue", parameterValue));
+            Console.WriteLine(command.CommandText);
             command.ExecuteNonQuery();
+        }
+
+        public int Upsert(object instance)
+        {
+            var table = instance.ToTable();
+            var anyPrimaryKeyColumn = table.Columns.FirstOrDefault(column => column.PrimaryKey) ?? 
+                                      table.Columns.FirstOrDefault(column => column.Unique);
+            if (anyPrimaryKeyColumn != null)
+            {
+                var value = instance.GetType().GetProperty(anyPrimaryKeyColumn.Name)?.GetValue(instance, null);
+                Console.WriteLine(value?.ToString());
+                var commandText = $"SELECT TOP 1 I_AI_ID FROM {table.Name} WHERE {anyPrimaryKeyColumn.Name} = @value;";
+                var command = dataHelper.CreateCommand(commandText);
+                command.Parameters.Add(new SqlParameter("@value", value));
+                var reader = command.ExecuteReader();
+                if (reader.HasRows)
+                {
+                    reader.Read();
+                    return UpdateByIdWithReferences(decimal.ToInt32((decimal) reader[0]), instance);
+                }
+            }
+            return InsertIntoSqlTable(instance);
         }
 
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

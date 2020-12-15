@@ -14,5 +14,6 @@ namespace SWE3.DataAccess.Interfaces
         public int UpdateByIdWithReferences(int id, object instance);
         public void UpdateByIdWithoutReferences(int id, object instance);
         public void UpdateWithSingleParameter(int id, string tableName, string parameterName, dynamic parameterValue);
+        public int Upsert(object instance);
     }
 }

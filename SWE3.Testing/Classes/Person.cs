@@ -7,7 +7,7 @@ namespace SWE3.Testing.Classes
     public class Person
     {
         [PrimaryKey] public int PersonId { get; set; }
-        [PrimaryKey] public string SocialSecurityNumber { get; set; }
+        [Unique] public string SocialSecurityNumber { get; set; }
         
         public DateTime BirthDate { get; set; }
 

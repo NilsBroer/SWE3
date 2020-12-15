@@ -30,7 +30,7 @@ namespace SWE3
                 {
                     Name = property.Name,
                     Type = property.GetTypeForSql(),
-                    NotNull = Attribute.IsDefined(property,typeof(NotNullable)),
+                    NotNull = Attribute.IsDefined(property,typeof(NotNullableAttribute)),
                     PrimaryKey = Attribute.IsDefined(property,typeof(PrimaryKeyAttribute)),
                 };
                 table.Columns.Add(column);

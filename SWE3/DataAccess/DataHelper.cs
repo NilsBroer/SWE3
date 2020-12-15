@@ -42,5 +42,12 @@ namespace SWE3.DataAccess
         {
             return new SqlCommand(commandText, connection);
         }
+        
+        public void ClearDatabase()
+        {
+            this.CreateCommand("EXEC sp_MSForEachTable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'").ExecuteNonQuery();
+            this.CreateCommand("EXEC sp_MSForEachTable 'DELETE FROM ?'").ExecuteNonQuery();
+            this.CreateCommand("EXEC sp_MSForEachTable 'ALTER TABLE ? CHECK CONSTRAINT ALL'").ExecuteNonQuery();
+        }
     }
 }

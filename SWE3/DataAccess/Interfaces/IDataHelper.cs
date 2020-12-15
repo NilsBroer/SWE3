@@ -5,8 +5,9 @@ namespace SWE3.DataAccess.Interfaces
     public interface IDataHelper
     {
         public SqlCommand CreateCommand(string commandText);
-        
-        //TODO: Cleare whole DB-function
+
+        public void ClearDatabase();
+
         //TODO: Transactions or similiar?
     }
 }

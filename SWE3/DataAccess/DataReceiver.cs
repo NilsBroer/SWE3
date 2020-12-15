@@ -22,7 +22,7 @@ namespace SWE3.DataAccess
             this.dataHelper = dataHelper;
             this.logger = logger;
         }
-        
+
         /// <summary>
         /// Gets an object (and subobjects, recursively) with a given ID and maps it to the given type.
         /// </summary>
@@ -31,6 +31,11 @@ namespace SWE3.DataAccess
         /// <typeparam name="T"></typeparam>
         /// <returns>object of type T</returns>
         public T GetObjectByInternalId<T>(int id, Type type = null) where T : class
+        {
+            InsertionQueue.Clear();
+            return GetObjectByInternalIdWithRecursion<T>(id, type);
+        }
+        private T GetObjectByInternalIdWithRecursion<T>(int id, Type type = null) where T : class
         {
             type ??= typeof(T);
 
@@ -159,7 +164,7 @@ namespace SWE3.DataAccess
 
             var multiple = objectIds.Count > 1;
 
-            foreach (var instance in objectIds.Select(objectId => GetObjectByInternalId<object>(objectId, type)))
+            foreach (var instance in objectIds.Select(objectId => GetObjectByInternalIdWithRecursion<object>(objectId, type)))
             {
                 if (multiple) ++Iteration;
                 yield return instance;
