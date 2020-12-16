@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
+using SWE3.BusinessLogic.Entities;
 
 namespace SWE3.Testing.Classes
 {
-    public class House
+    public class House : Cloneable
     {
         public Address Location { get; set; }
         

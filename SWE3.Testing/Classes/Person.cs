@@ -4,7 +4,7 @@ using SWE3.BusinessLogic.Entities;
 
 namespace SWE3.Testing.Classes
 {
-    public class Person
+    public class Person : Cloneable
     {
         [PrimaryKey] public int PersonId { get; set; }
         [Unique] public string SocialSecurityNumber { get; set; }

@@ -14,7 +14,7 @@ namespace SWE3.DataAccess
 
         private const string ADD = "Add";
         
-        private static readonly List<(string insert, int iteration)> InsertionQueue = new List<(string,int)>();
+        private static readonly List<(string insert, int iteration)> SelectionQueue = new List<(string,int)>();
         private static int Iteration;
         
         public DataReceiver(IDataHelper dataHelper, ILogger logger)
@@ -32,20 +32,21 @@ namespace SWE3.DataAccess
         /// <returns>object of type T</returns>
         public T GetObjectByInternalId<T>(int id, Type type = null) where T : class
         {
-            InsertionQueue.Clear();
-            return GetObjectByInternalIdWithRecursion<T>(id, type);
+            SelectionQueue.Clear();
+            T result;
+            return (result = CachingHelper.Get<T>(id)) != null ? result : GetObjectByInternalIdWithRecursion<T>(id, type);
         }
         private T GetObjectByInternalIdWithRecursion<T>(int id, Type type = null) where T : class
         {
             type ??= typeof(T);
 
-            if (InsertionQueue.Contains((type.Name, Iteration)))
+            if (SelectionQueue.Contains((type.Name, Iteration)))
             {
                 logger.Warning("Recursive reference detected and ignored." + '\n' +
                                "If you need self-references you will have to add them yourself.");
                 return (T) Activator.CreateInstance(type);
             }
-            InsertionQueue.Add((type.Name,Iteration));
+            SelectionQueue.Add((type.Name,Iteration));
             
             var commandText = $"SELECT * FROM {type.Name} WHERE I_AI_ID = @id";
             var command = dataHelper.CreateCommand(commandText);
@@ -171,14 +172,15 @@ namespace SWE3.DataAccess
             }
         }
 
-        public object GetObjectFromTablePrimaryKeys<T>(string tableName, string[] primaryKeyValues)
+        public IEnumerable<T> GetAllObjectsFromTable<T>(string tableName) where T : class
         {
-            throw new System.NotImplementedException();
-        }
-
-        public IEnumerable<object> GetAllObjectsFromTable<T>(string tableName)
-        {
-            throw new System.NotImplementedException();
+            var commandText = "SELECT I_AI_ID FROM {tableName}";
+            var command = dataHelper.CreateCommand(commandText);
+            var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                yield return GetObjectByInternalId<T>(decimal.ToInt32( (decimal) reader[0]));
+            }
         }
     }
 }

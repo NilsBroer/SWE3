@@ -3,12 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Net;
 using System.Reflection;
 using Serilog;
 using SWE3.DataAccess.Interfaces;
 
-//TODO: Add caching
 //TODO: Refactor #last
 
 namespace SWE3.DataAccess
@@ -54,7 +52,7 @@ namespace SWE3.DataAccess
             
             var commandText =
                 $"CREATE TABLE {table.Name} (" +
-                "I_AI_ID decimal IDENTITY(1,1), "; //Internal Auto-Increment ID for mapping, like second, more importantly single, hidden primary key
+                "I_AI_ID decimal IDENTITY(1,1), "; //Internal Auto-Increment ID
             
             foreach (var column in table.Columns)
             {
@@ -161,7 +159,9 @@ namespace SWE3.DataAccess
         public int InsertIntoSqlTable(object instance)
         {
             InsertionQueue.Clear();
-            return InsertIntoSqlTableWithRecursion(instance);
+            var id =  InsertIntoSqlTableWithRecursion(instance);
+            CachingHelper.Set(id, instance);
+            return id;
         }
 
         /// <summary>
@@ -359,6 +359,8 @@ namespace SWE3.DataAccess
                 $"WHERE I_AI_ID = {id}";
             command.CommandText = commandText;
             command.ExecuteNonQuery();
+            
+            CachingHelper.Remove(tableName,id);
         }
 
         /// <summary>
@@ -367,11 +369,13 @@ namespace SWE3.DataAccess
         public int UpdateByIdWithReferences(int id, object instance)
         {
             DeleteByIdWithReferences(id, instance: instance);
-            return InsertIntoSqlTable(instance);
+            var newId =  InsertIntoSqlTable(instance);
+            CachingHelper.Remove(instance.GetType().Name,id);
+            return newId;
         }
 
         /// <summary>
-        /// 
+        /// Deletes only the base table and ignores all references.
         /// </summary>
         public void DeleteByIdWithoutReferences(int id, Type type = null, string tableName = null, object instance = null)
         {
@@ -381,10 +385,12 @@ namespace SWE3.DataAccess
                 $"WHERE I_AI_ID = {id}";
             var command = dataHelper.CreateCommand(commandText);
             command.ExecuteNonQuery();
+            
+            CachingHelper.Remove(tableName, id);
         }
 
         /// <summary>
-        /// 
+        /// Updates only the base table and ignores all references.
         /// </summary>
         public void UpdateByIdWithoutReferences(int id, object instance)
         {
@@ -411,6 +417,8 @@ namespace SWE3.DataAccess
             }
             
             command.ExecuteNonQuery();
+            
+            CachingHelper.Remove(table.Name,id);
         }
 
         /// <summary>
@@ -425,6 +433,12 @@ namespace SWE3.DataAccess
             command.Parameters.Add(new SqlParameter("@parameterValue", parameterValue));
             Console.WriteLine(command.CommandText);
             command.ExecuteNonQuery();
+
+            var item = CachingHelper.Get<dynamic>(tableName, id);
+            PropertyInfo property = item.GetType().GetProperty(parameterName);
+            if(property != null) property.SetValue(item,parameterValue,null);
+            CachingHelper.Remove(tableName,id);
+            CachingHelper.Set(tableName,id,item);
         }
 
         public int Upsert(object instance)

@@ -2,7 +2,7 @@
 
 namespace SWE3.Testing.Classes
 {
-    public class Address
+    public class Address : Cloneable
     {
         [PrimaryKey] public string AddressIdentifier { get; set; }
         public string Street { get; set; }

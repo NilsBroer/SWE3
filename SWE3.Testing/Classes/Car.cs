@@ -4,7 +4,7 @@ using SWE3.BusinessLogic.Entities;
 
 namespace SWE3.Testing.Classes
 {
-    public class Car
+    public class Car : Cloneable
     {
         public BrandEnum Brand { get; set; }
         
