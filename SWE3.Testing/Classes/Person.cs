@@ -22,6 +22,6 @@ namespace SWE3.Testing.Classes
         
         public List<int> FavoriteNumbers { get; set; }
 
-        public object AlwaysNull = null;
+        public string AlwaysNull = null;
     }
 }

@@ -258,6 +258,31 @@ namespace SWE3.Testing
             Assert.AreNotEqual(differentAddress.AddressIdentifier,sut.AddressIdentifier);
         }
         
+        [Test]
+        public void T011_BasicObjectsShouldReturnAsMultiple()
+        {
+            //GIVEN
+            dataHelper.ClearDatabase();
+            dataTransmitter.CreateSqlTableFromShell(address);
+            dataTransmitter.InsertIntoSqlTable(address);
+
+            address.City = "AAA";
+            address.AddressIdentifier = "AAA";
+            dataTransmitter.InsertIntoSqlTable(address);
+
+            address.AddressIdentifier = "BBB";
+            address.City = "BBB";
+            dataTransmitter.InsertIntoSqlTable(address);
+
+
+            //WHEN
+            var sut = dataReceiver.GetAllObjectsFromTable<Address>().ToList();
+            
+            //THEN
+            Assert.AreEqual(3,sut.Count);
+            Assert.AreEqual(address.GetType().GetUnderlyingType(),sut.GetType().GetUnderlyingType());
+        }
+        
         //Advanced ---------------------------------------
 
         [Test]
@@ -458,7 +483,54 @@ namespace SWE3.Testing
         [Test]
         public void T110_AdvancedObjectShouldUpsertCorrectly()
         {
-            //TODO: Implement
+            //GIVEN
+            dataHelper.ClearDatabase();
+            dataTransmitter.CreateSqlTableFromShell(person);
+            
+            var differentPerson = new Person { PersonId = 9, SocialSecurityNumber = "AROOOOMBA", Car = new Car(), House = new House(), Pets = new Pet[0], AlwaysNull = null, BirthDate = new DateTime(2016,12,12), FavoriteNumbers = new List<int>(), IsEmployed = false};
+            
+            dataTransmitter.Upsert(differentPerson);
+            var id = dataTransmitter.Upsert(person);
+
+            var expectedPersonExceptForSSN = dataReceiver.GetObjectByInternalId<Person>(id);
+
+            person.PersonId = 777;
+            var expectedSSN = person.SocialSecurityNumber = "BROOOOMBA";
+            
+            //WHEN
+            id = dataTransmitter.Upsert(person);
+            var sut = dataReceiver.GetObjectByInternalId<Person>(id);
+            
+            //THEN
+            Assert.AreEqual(person.PersonId,sut.PersonId);
+            Assert.AreNotEqual(expectedPersonExceptForSSN.SocialSecurityNumber,sut.SocialSecurityNumber);
+            Assert.AreEqual(expectedSSN,sut.SocialSecurityNumber);
+            Assert.AreNotEqual(differentPerson.PersonId,sut.PersonId);
+        }
+
+        [Test]
+        public void T111_AdvancedObjectsShouldReturnAsMultiple()
+        {
+            //GIVEN
+            dataHelper.ClearDatabase();
+            dataTransmitter.CreateSqlTableFromShell(person);
+            dataTransmitter.InsertIntoSqlTable(person);
+            
+            person.PersonId = 420;
+            person.SocialSecurityNumber = "AAA";
+            dataTransmitter.InsertIntoSqlTable(person);
+            
+            person.PersonId = 69;
+            person.SocialSecurityNumber = "BBB";
+            dataTransmitter.InsertIntoSqlTable(person);
+
+
+            //WHEN
+            var sut = dataReceiver.GetAllObjectsFromTable<Person>().ToList();
+            
+            //THEN
+            Assert.AreEqual(3,sut.Count);
+            Assert.AreEqual(person.GetType().GetUnderlyingType(),sut.GetType().GetUnderlyingType());
         }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

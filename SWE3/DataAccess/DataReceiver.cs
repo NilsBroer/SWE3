@@ -172,9 +172,10 @@ namespace SWE3.DataAccess
             }
         }
 
-        public IEnumerable<T> GetAllObjectsFromTable<T>(string tableName) where T : class
+        public IEnumerable<T> GetAllObjectsFromTable<T>(string tableName = null) where T : class
         {
-            var commandText = "SELECT I_AI_ID FROM {tableName}";
+            tableName ??= typeof(T).Name;
+            var commandText = $"SELECT I_AI_ID FROM {tableName}";
             var command = dataHelper.CreateCommand(commandText);
             var reader = command.ExecuteReader();
             while (reader.Read())

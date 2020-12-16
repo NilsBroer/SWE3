@@ -192,7 +192,7 @@ namespace SWE3.DataAccess
                     if (values[i] == null)
                     {
                         logger.Error("Expected object or enumerable to map, found null instead.", values[i], i, values);
-                        throw new Exception();
+                        continue;
                     }
                     
                     if (!column.Type.Contains(CUSTOM))
@@ -253,6 +253,7 @@ namespace SWE3.DataAccess
             catch (SqlException e)
             {
                 logger.Fatal("SqlException: ", e);
+                logger.Error("Error for query: " + commandText);
                 return -1;
             }
             
