@@ -533,6 +533,31 @@ namespace SWE3.Testing
             Assert.AreEqual(person.GetType().GetUnderlyingType(),sut.GetType().GetUnderlyingType());
         }
 
+        [Test]
+        public void T201_SqlCommandsShouldWorkAsTransaction()
+        {
+            //GIVEN
+            dataHelper.ClearDatabase();
+            
+            //WHEN
+            var commitCommand = dataHelper.CreateCommand("CREATE TABLE TEST_TABLE (col1 int, col2 nvarchar(30));").AsTransaction(DataHelper.Transactions.COMMIT);
+            commitCommand.ExecuteNonQuery();
+            var regularCommand = dataHelper.CreateCommand("INSERT INTO TEST_TABLE (col1, col2) VALUES(1, 'hello') ");
+            regularCommand.ExecuteNonQuery();
+            var rollbackCommand = dataHelper.CreateCommand("INSERT INTO TEST_TABLE (col1, col2) VALUES(2, 'test') ").AsTransaction(DataHelper.Transactions.ROLLBACK);
+            rollbackCommand.ExecuteNonQuery();
+
+            var reader = dataHelper.CreateCommand("SELECT * FROM TEST_TABLE").ExecuteReader();
+            
+            //THEN
+            Assert.IsTrue(TableExists("TEST_TABLE"));
+            Assert.IsTrue(TableHasContent("TEST_TABLE"));
+            Assert.IsTrue(reader.Read());
+            Assert.AreEqual(1, reader[0]);
+            Assert.AreEqual("hello", reader[1]);
+            Assert.IsFalse(reader.Read());
+        }
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         private bool TableExists(string tableName)

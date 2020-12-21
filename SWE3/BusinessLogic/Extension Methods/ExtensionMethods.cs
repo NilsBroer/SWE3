@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
+using System.Data.SqlClient;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text.Json.Serialization;
-using Microsoft.VisualBasic.FileIO;
-using Newtonsoft.Json;
 using SWE3.BusinessLogic.Entities;
+using SWE3.DataAccess;
 
 namespace SWE3
 {
@@ -113,6 +109,23 @@ namespace SWE3
         public static object MakeNullSafe(this object obj)
         {
             return obj == DBNull.Value ? null : obj;
+        }
+
+        public static SqlCommand AsTransaction(this SqlCommand command, DataHelper.Transactions transaction = DataHelper.Transactions.ROLLBACK)
+        {
+            command.CommandText = "BEGIN TRANSACTION" + "\n" + command.CommandText + "\n" + transaction.GetName();
+            //Default transaction-type is rollback, because commit doesn't really differ from the regular execution
+            return command;
+        }
+
+        private static string GetName(this DataHelper.Transactions transaction)
+        {
+            return transaction switch
+            {
+                DataHelper.Transactions.COMMIT => "COMMIT",
+                DataHelper.Transactions.ROLLBACK => "ROLLBACK",
+                _ => throw new ArgumentOutOfRangeException(nameof(transaction), transaction, null)
+            };
         }
     }
 }

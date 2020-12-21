@@ -58,5 +58,11 @@ namespace SWE3.DataAccess
             this.CreateCommand("EXEC sp_MSForEachTable 'DELETE FROM ?'").ExecuteNonQuery();
             this.CreateCommand("EXEC sp_MSForEachTable 'ALTER TABLE ? CHECK CONSTRAINT ALL'").ExecuteNonQuery();
         }
+
+        public enum Transactions
+        {
+            COMMIT,
+            ROLLBACK
+        }
     }
 }

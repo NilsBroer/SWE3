@@ -8,13 +8,15 @@ namespace SWE3.BusinessLogic
     {
         private readonly ILogger logger;
         private readonly IDataHelper dataHelper;
-        private readonly IDataTransmitter _dataTransmitter;
+        private readonly IDataTransmitter dataTransmitter;
+        private readonly IDataReceiver dataReceiver;
 
-        public Logic(ILogger logger, IDataHelper dataHelper, IDataTransmitter dataTransmitter)
+        public Logic(ILogger logger, IDataHelper dataHelper, IDataTransmitter dataTransmitter, IDataReceiver dataReceiver)
         {
             this.logger = logger;
             this.dataHelper = dataHelper;
-            this._dataTransmitter = dataTransmitter;
+            this.dataTransmitter = dataTransmitter;
+            this.dataReceiver = dataReceiver;
         }
     }
 }
