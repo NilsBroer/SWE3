@@ -7,15 +7,9 @@ using System.Reflection;
 using Serilog;
 using SWE3.DataAccess.Interfaces;
 
-//TODO: Refactor #last
-
 namespace SWE3.DataAccess
 {
-    /// <summary>
-    /// Transmitts data from C#-code to SQL(-tables).
-    /// Class --> table (Create)
-    /// Instance --> Entry (Insert)
-    /// </summary>
+    /// <inheritdoc />
     public class DataTransmitter : IDataTransmitter
     {
         private readonly IDataHelper dataHelper;
@@ -34,10 +28,7 @@ namespace SWE3.DataAccess
             this.logger = logger;
         }
 
-        /// <summary>
-        /// Builds a table-object and from that a new SQL-table according to the properties of the given class.
-        /// Object can be empty, as only the shell (class-properties) is required.
-        /// </summary>
+        /// <inheritdoc />
         public void CreateSqlTableFromShell(object shell)
         {
             var table = shell.ToTable();
@@ -152,10 +143,7 @@ namespace SWE3.DataAccess
             }
         }
 
-        /// <summary>
-        /// Inserts the values held by an object (instance) into an already existing sql-table
-        /// </summary>
-        /// <returns>ID upon success (>= 1), 0 when redundant, -1 upon failure</returns>
+        /// <inheritdoc />
         public int InsertIntoSqlTable(object instance)
         {
             InsertionQueue.Clear();
@@ -287,9 +275,7 @@ namespace SWE3.DataAccess
             }
         }
         
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <inheritdoc />
         public void DeleteByIdWithReferences(int id, Type type = null, object instance = null)
         {
             var tableName = instance?.GetType().Name ?? type!.Name;
@@ -364,9 +350,7 @@ namespace SWE3.DataAccess
             CachingHelper.Remove(tableName,id);
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <inheritdoc />
         public int UpdateByIdWithReferences(int id, object instance)
         {
             DeleteByIdWithReferences(id, instance: instance);
@@ -390,9 +374,7 @@ namespace SWE3.DataAccess
             CachingHelper.Remove(tableName, id);
         }
 
-        /// <summary>
-        /// Updates only the base table and ignores all references.
-        /// </summary>
+        /// <inheritdoc />
         public void UpdateByIdWithoutReferences(int id, object instance)
         {
             var table = instance.ToTable();
@@ -422,9 +404,7 @@ namespace SWE3.DataAccess
             CachingHelper.Remove(table.Name,id);
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
+        /// <inheritdoc />
         public void UpdateWithSingleParameter(int id, string tableName, string parameterName, dynamic parameterValue)
         {
             var commandText =
@@ -442,6 +422,7 @@ namespace SWE3.DataAccess
             CachingHelper.Set(tableName,id,item);
         }
 
+        /// <inheritdoc />
         public int Upsert(object instance)
         {
             var table = instance.ToTable();

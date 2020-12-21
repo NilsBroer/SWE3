@@ -11,7 +11,7 @@ namespace SWE3.Setup
         {
             this.logic = logic;
         }
-
+        
         public void Run()
         {
             Console.WriteLine("Application started.");

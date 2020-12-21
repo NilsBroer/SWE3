@@ -9,6 +9,9 @@ using IContainer = Autofac.IContainer;
 
 namespace SWE3.Setup
 {
+    /// <summary>
+    /// Dependency Injection Configuration
+    /// </summary>
     public static class ContainerConfig
     {
         public static IContainer Configure()

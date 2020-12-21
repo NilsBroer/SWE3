@@ -5,6 +5,9 @@ namespace SWE3
 {
     internal static class Program
     {
+        /// <summary>
+        /// ENTRY POINT
+        /// </summary>
         private static void Main()
         {
             var container = ContainerConfig.Configure();

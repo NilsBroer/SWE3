@@ -7,6 +7,7 @@ using SWE3.DataAccess.Interfaces;
 
 namespace SWE3.DataAccess
 {
+    /// <inheritdoc />
     public class DataReceiver : IDataReceiver
     {
         private readonly IDataHelper dataHelper;
@@ -23,19 +24,14 @@ namespace SWE3.DataAccess
             this.logger = logger;
         }
 
-        /// <summary>
-        /// Gets an object (and subobjects, recursively) with a given ID and maps it to the given type.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="type"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns>object of type T</returns>
+        /// <inheritdoc />
         public T GetObjectByInternalId<T>(int id, Type type = null) where T : class
         {
             SelectionQueue.Clear();
             T result;
             return (result = CachingHelper.Get<T>(id)) != null ? result : GetObjectByInternalIdWithRecursion<T>(id, type);
         }
+        
         private T GetObjectByInternalIdWithRecursion<T>(int id, Type type = null) where T : class
         {
             type ??= typeof(T);
@@ -171,7 +167,9 @@ namespace SWE3.DataAccess
                 yield return instance;
             }
         }
-
+        
+        
+        /// <inheritdoc />
         public IEnumerable<T> GetAllObjectsFromTable<T>(string tableName = null) where T : class
         {
             tableName ??= typeof(T).Name;
@@ -185,5 +183,3 @@ namespace SWE3.DataAccess
         }
     }
 }
-
-//NOTE: Does not work with multi-level arrays and custom enumerables
