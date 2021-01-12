@@ -10,6 +10,7 @@ using ILogger = Serilog.ILogger;
 
 namespace SWE3.Testing
 {
+    //Tests should be run seperately, since there is no locking or thread-safety (for me it was enough to turn on "LockSession" in the NUnit Settings
     [TestFixture]
     public class DevelopmentTests
     {
@@ -540,8 +541,11 @@ namespace SWE3.Testing
             dataHelper.ClearDatabase();
             
             //WHEN
-            var commitCommand = dataHelper.CreateCommand("CREATE TABLE TEST_TABLE (col1 int, col2 nvarchar(30));").AsTransaction(DataHelper.Transactions.COMMIT);
-            commitCommand.ExecuteNonQuery();
+            if (!TableExists("TEST_TABLE"))
+            {
+                var commitCommand = dataHelper.CreateCommand("CREATE TABLE TEST_TABLE (col1 int, col2 nvarchar(30));").AsTransaction(DataHelper.Transactions.COMMIT);
+                commitCommand.ExecuteNonQuery();
+            }
             var regularCommand = dataHelper.CreateCommand("INSERT INTO TEST_TABLE (col1, col2) VALUES(1, 'hello') ");
             regularCommand.ExecuteNonQuery();
             var rollbackCommand = dataHelper.CreateCommand("INSERT INTO TEST_TABLE (col1, col2) VALUES(2, 'test') ").AsTransaction(DataHelper.Transactions.ROLLBACK);
@@ -556,6 +560,39 @@ namespace SWE3.Testing
             Assert.AreEqual(1, reader[0]);
             Assert.AreEqual("hello", reader[1]);
             Assert.IsFalse(reader.Read());
+        }
+        
+        [Test]
+        public void T202_DataReceiverShouldBeAbleToReceiveArbitraryData()
+        {
+            //GIVEN
+            dataHelper.ClearDatabase();
+            dataTransmitter.CreateSqlTableFromShell(person);
+            
+            //WHEN
+            dataTransmitter.InsertIntoSqlTable(person);
+            var sut = dataReceiver.GetDataByCustomQuery("SELECT * FROM Pet");
+
+            //THEN
+            Assert.AreEqual(sut[0][1].ToString(), "Jimmy");
+            Assert.AreEqual((bool) sut[0][2], true);
+            Assert.AreEqual(sut[1][1].ToString(), "Fridolin");
+            Assert.AreEqual(sut[1][2].MakeNullSafe(), null);
+        }
+        
+        [Test]
+        public void T203_DataTransmitterShouldBeAbleToExecuteArbitraryNonQuery()
+        {
+            //GIVEN
+            dataHelper.ClearDatabase();
+
+            //WHEN
+            if(TableExists("CUSTOM_TABLE"))
+                dataTransmitter.ExecuteCustomNonQuery("DROP TABLE CUSTOM_TABLE");
+            dataTransmitter.ExecuteCustomNonQuery("CREATE TABLE CUSTOM_TABLE (col1 int, col2 nvarchar(30))");
+
+            //THEN
+            Assert.IsTrue(TableExists("CUSTOM_TABLE"));
         }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

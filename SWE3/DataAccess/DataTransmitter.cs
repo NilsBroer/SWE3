@@ -445,6 +445,19 @@ namespace SWE3.DataAccess
             return InsertIntoSqlTable(instance);
         }
 
+        /// <inheritdoc />
+        public void ExecuteCustomNonQuery(string query)
+        {
+            try
+            {
+                dataHelper.CreateCommand(query).ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+                logger.Error($"Execution failed. Error: {e}");
+            }
+        }
+
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         /// <summary>

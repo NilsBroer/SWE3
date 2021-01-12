@@ -16,7 +16,5 @@ namespace SWE3.DataAccess.Interfaces
         /// Deletes all entries from the pre-set MSSQL database
         /// </summary>
         public void ClearDatabase();
-
-        //TODO: Transactions or similiar?
     }
 }

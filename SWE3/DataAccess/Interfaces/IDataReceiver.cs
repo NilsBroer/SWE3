@@ -24,5 +24,13 @@ namespace SWE3.DataAccess.Interfaces
         /// <typeparam name="T"></typeparam>
         /// <returns>collection of objects of type T</returns>
         public IEnumerable<T> GetAllObjectsFromTable<T>(string tableName = null) where T : class;
+
+        /// <summary>
+        /// Gets a multilayered list, representing all data like a multi-layered array, as such:
+        /// data[row][col]
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
+        public List<List<object>> GetDataByCustomQuery(string query);
     }
 }

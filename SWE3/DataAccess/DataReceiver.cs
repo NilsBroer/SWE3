@@ -181,5 +181,23 @@ namespace SWE3.DataAccess
                 yield return GetObjectByInternalId<T>(decimal.ToInt32( (decimal) reader[0]));
             }
         }
+        
+        /// <inheritdoc />
+        public List<List<dynamic>> GetDataByCustomQuery(string query)
+        {
+            var reader = dataHelper.CreateCommand(query).ExecuteReader();
+            var data = new List<List<dynamic>>();
+            while (reader.Read())
+            {
+                var row = new List<dynamic>();
+                for (var col = 0; col < reader.FieldCount; col++)
+                {
+                    row.Add(reader[col]);
+                }
+                data.Add(row);
+            }
+
+            return data;
+        }
     }
 }

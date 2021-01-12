@@ -56,7 +56,11 @@ namespace SWE3.DataAccess
         {
             this.CreateCommand("EXEC sp_MSForEachTable 'ALTER TABLE ? NOCHECK CONSTRAINT ALL'").ExecuteNonQuery();
             this.CreateCommand("EXEC sp_MSForEachTable 'DELETE FROM ?'").ExecuteNonQuery();
+            //this.CreateCommand("EXEC sp_MSForEachTable 'DROP TABLE ?'").ExecuteNonQuery();
+            //This wors perfectly fine, but if enabled, all unit-tests need to be run seperately, even if session is locked in NUnit settings. 
             this.CreateCommand("EXEC sp_MSForEachTable 'ALTER TABLE ? CHECK CONSTRAINT ALL'").ExecuteNonQuery();
+            
+            CachingHelper.ClearCache();
         }
 
         public enum Transactions

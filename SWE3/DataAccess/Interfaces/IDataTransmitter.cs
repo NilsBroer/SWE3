@@ -61,5 +61,11 @@ namespace SWE3.DataAccess.Interfaces
         /// </summary>
         /// <returns>ID, as declared in the two used functions above</returns>
         public int Upsert(object instance);
+
+        /// <summary>
+        /// Executes any non-query (that does therefore not yield a return value)
+        /// </summary>
+        /// <param name="query"></param>
+        public void ExecuteCustomNonQuery(string query);
     }
 }
